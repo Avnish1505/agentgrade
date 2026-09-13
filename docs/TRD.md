@@ -130,6 +130,8 @@ Note (Phase 1, org-verified): Metadata API deploys do not grant field-level secu
 
 Note (Phase 2, org-verified): `access.default_agent_user` in an Agent Script file requires a user holding the Einstein Agent license specifically — a Standard User's Salesforce license does not satisfy this, and the org rejects reassigning an existing Standard User to that license type directly. `agentgrade.runner.agent@00dak00001f6nyt.agentgrade.test` is the dedicated Einstein Agent User-profile user created for this, with `AgentGrade_Access` assigned.
 
+Note (Phase 2, org-verified): a manually created agent runner user does not receive the platform-provisioned grants that an auto-created one (e.g. Greeting_Assistant's) gets automatically, which surfaces as "User doesn't have access to agent" on commit even though the user's profile, license, and custom permission set all look correct. For `agentgrade.runner.agent@...`, the four missing grants were the `AgentforceServiceAgentUserPsg` and `AgentforceServiceAgentSecureBase` permission sets and the `Data Cloud` and `Einstein Prompt Templates` permission set licenses. Assigning `AgentforceServiceAgentSecureBase` auto-granted both permission set licenses as a side effect; only the two permission sets needed explicit assignment.
+
 ## 10. Platform limits and constraints
 
 TODO: record the actual limits you hit, with dates. Verify each against current Salesforce documentation before quoting it in an interview; limits change between releases.
