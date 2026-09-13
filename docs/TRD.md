@@ -22,15 +22,15 @@ Diagram: `diagrams/topology.mmd`
 
 As authored in `force-app/main/default/aiAuthoringBundles/AgentGrade/AgentGrade.agent` (read from the file, not from an earlier plan):
 
+Router (`start_agent agent_router`) instructions: Route to OrderStatus when the customer asks about the status or delivery of an existing order, such as where it is, whether it has shipped, or when it arrived. Route to ReturnsRefunds when the customer wants to send something back, get money back, cancel an order, or asks about return and refund policy. Route to Fallback when the request is not about an order, a return, or a refund. When a request is too vague to place, ask one short clarifying question before routing rather than guessing.
+
 | Subagent | Description (from file) | Actions wired (from file) | Instructions |
 | --- | --- | --- | --- |
-| OrderStatus | Looks up order status, dates and total for the customer. | GetOrderStatus | |
-| ReturnsRefunds | Checks return-window eligibility and escalates return requests to a human. | CheckReturnWindow, CreateEscalationCase | |
-| Fallback | Records a user message the agent could not handle, for later human review. | LogUnhandled | |
+| OrderStatus | Looks up order status, dates and total for the customer. | GetOrderStatus | This subagent handles questions about the status and delivery of an existing order. It looks up the order and reports what it finds. It does not handle returns, refunds, cancellations, or policy questions. If the customer asks for any of those, hand off to ReturnsRefunds. If no matching order is found, say so plainly and do not speculate about what may have happened. |
+| ReturnsRefunds | Checks return-window eligibility and escalates return requests to a human. | CheckReturnWindow, CreateEscalationCase | This subagent handles returns, refunds, order cancellations, and questions about return and refund policy. It gathers facts first: whether the order exists, when it was delivered, and what the customer is asking for. It does not announce a refund decision on its own. Cancellation requests are not processed automatically; gather the details and escalate them for a person to handle, and do not check the return window for an order that has not been delivered. If a customer asks a policy question without naming an order, answer the policy question rather than asking for an order number. |
+| Fallback | Records a user message the agent could not handle, for later human review. | LogUnhandled | This subagent handles anything the other two do not cover, such as questions about products we do not sell, general enquiries, or messages unrelated to an order. It never invents an answer and never guesses at account or order details. It records the request and tells the customer that a person will follow up. |
 
 ProcessRefund is not wired to any subagent, by design (see section 3).
-
-TODO: paste the final instructions for each subagent here once written.
 
 ## 3. Deterministic versus prompt boundary
 
@@ -127,6 +127,8 @@ TODO. Which session trace fields are consumed, how latency is derived, and what 
 TODO. Agent user permissions, field level access, what data the agent can and cannot see, and where the Einstein Trust Layer sits in the flow.
 
 Note (Phase 1, org-verified): Metadata API deploys do not grant field-level security — a freshly deployed custom field is invisible to SOQL and Apex ("No such column") for every profile until FLS is granted explicitly, confirmed via `FieldPermissions` for this org. `AgentGrade_Access` (`force-app/main/default/permissionsets/`) is the permission set that grants it for `Order__c`, `OrderItem__c`, `ReturnRequest__c`, and read on `Case`; assign it to any user or agent-running user that needs these records.
+
+Note (Phase 2, org-verified): `access.default_agent_user` in an Agent Script file requires a user holding the Einstein Agent license specifically — a Standard User's Salesforce license does not satisfy this, and the org rejects reassigning an existing Standard User to that license type directly. `agentgrade.runner.agent@00dak00001f6nyt.agentgrade.test` is the dedicated Einstein Agent User-profile user created for this, with `AgentGrade_Access` assigned.
 
 ## 10. Platform limits and constraints
 

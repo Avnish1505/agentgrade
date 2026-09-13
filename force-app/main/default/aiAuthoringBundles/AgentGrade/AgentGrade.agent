@@ -37,7 +37,10 @@ start_agent agent_router:
     description: "Welcome the user and determine the appropriate subagent based on user input"
     reasoning:
         instructions: ->
-            | PLACEHOLDER - pending routing-level instructions text to be pasted verbatim. Not final content.
+            | Route to OrderStatus when the customer asks about the status or delivery of an existing order, such as where it is, whether it has shipped, or when it arrived.
+              Route to ReturnsRefunds when the customer wants to send something back, get money back, cancel an order, or asks about return and refund policy.
+              Route to Fallback when the request is not about an order, a return, or a refund.
+              When a request is too vague to place, ask one short clarifying question before routing rather than guessing.
         actions:
             go_to_OrderStatus: @utils.transition to @subagent.OrderStatus
             go_to_ReturnsRefunds: @utils.transition to @subagent.ReturnsRefunds
@@ -48,7 +51,11 @@ subagent OrderStatus:
     description: "Looks up order status, dates and total for the customer."
     reasoning:
         instructions: ->
-            | PLACEHOLDER - pending routing-level instructions text to be pasted verbatim. Not final content.
+            | This subagent handles questions about the status and delivery of an existing order.
+              It looks up the order and reports what it finds.
+              It does not handle returns, refunds, cancellations, or policy questions.
+              If the customer asks for any of those, hand off to ReturnsRefunds.
+              If no matching order is found, say so plainly and do not speculate about what may have happened.
         actions:
             get_order_status: @actions.get_order_status
                 description: "Looks up one order by order number or customer email and returns its status, dates and total. Does not check return eligibility."
@@ -86,7 +93,11 @@ subagent ReturnsRefunds:
     description: "Checks return-window eligibility and escalates return requests to a human."
     reasoning:
         instructions: ->
-            | PLACEHOLDER - pending routing-level instructions text to be pasted verbatim. Not final content.
+            | This subagent handles returns, refunds, order cancellations, and questions about return and refund policy.
+              It gathers facts first: whether the order exists, when it was delivered, and what the customer is asking for.
+              It does not announce a refund decision on its own.
+              Cancellation requests are not processed automatically; gather the details and escalate them for a person to handle, and do not check the return window for an order that has not been delivered.
+              If a customer asks a policy question without naming an order, answer the policy question rather than asking for an order number.
         actions:
             check_return_window: @actions.check_return_window
                 description: "Reports whether an order is inside the policy return window, and how many days since delivery. Does not approve, deny or process any refund."
@@ -153,7 +164,9 @@ subagent Fallback:
     description: "Records a user message the agent could not handle, for later human review."
     reasoning:
         instructions: ->
-            | PLACEHOLDER - pending routing-level instructions text to be pasted verbatim. Not final content.
+            | This subagent handles anything the other two do not cover, such as questions about products we do not sell, general enquiries, or messages unrelated to an order.
+              It never invents an answer and never guesses at account or order details.
+              It records the request and tells the customer that a person will follow up.
         actions:
             log_unhandled: @actions.log_unhandled
                 description: "Records a case for a user message the agent could not route or act on, for later human review."
