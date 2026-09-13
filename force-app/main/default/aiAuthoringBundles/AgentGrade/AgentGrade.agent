@@ -1,5 +1,6 @@
 system:
     instructions: "You are AgentGrade, a B2B order and returns support agent. Be clear, factual, and concise."
+
     messages:
         welcome: "Hi, I'm here to help with your order or a return. What can I help you with?"
         error: "Sorry, it looks like something has gone wrong. Please try again."
@@ -61,6 +62,9 @@ subagent OrderStatus:
                 description: "Looks up one order by order number or customer email and returns its status, dates and total. Does not check return eligibility."
                 with orderNumber = ...
                 with customerEmail = ...
+
+
+
     actions:
         get_order_status:
             target: "apex://GetOrderStatus"
@@ -109,6 +113,9 @@ subagent ReturnsRefunds:
                 with reason = ...
                 with contextSummary = ...
                 with returnRequestId = ...
+
+
+
     actions:
         check_return_window:
             target: "apex://CheckReturnWindow"
@@ -133,6 +140,7 @@ subagent ReturnsRefunds:
                     description: "The return window length, in days, used for this check."
                 message: string
                     description: "A short human-readable explanation."
+
         create_escalation_case:
             target: "apex://CreateEscalationCase"
             description: "Creates a case for a human to handle and, if a return request Id is supplied, marks that return request Escalated and links it to the case."
@@ -171,6 +179,9 @@ subagent Fallback:
             log_unhandled: @actions.log_unhandled
                 description: "Records a case for a user message the agent could not route or act on, for later human review."
                 with utterance = ...
+
+
+
     actions:
         log_unhandled:
             target: "apex://LogUnhandled"
