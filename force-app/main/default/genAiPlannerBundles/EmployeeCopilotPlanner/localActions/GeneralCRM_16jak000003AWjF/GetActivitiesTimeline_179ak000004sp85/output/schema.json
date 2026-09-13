@@ -1,0 +1,16 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "activitiesList" : {
+      "title" : "Activities List",
+      "description" : "A list of activities related to the record ID, including high-level details.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "List of activities related to the record Id, with high level information.",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

@@ -1,0 +1,32 @@
+{
+  "required" : [ "recordId", "objectType", "userInput" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "recordId" : {
+      "title" : "Record ID",
+      "description" : "The ID of the record mentioned in the user’s request. This ID is the output of the identifyRecordByName action.",
+      "lightning:type" : "lightning__recordIdType",
+      "einstein:description" : "The single ID of the record the user mentioned in their request. The ID is the output of the identifyRecordByName action.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "objectType" : {
+      "title" : "Object Type",
+      "description" : "The API name of the type of the record to be updated, such as Account or Contact. This API name is used to identify Salesforce record field-value pairs from the user request.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "The single API name of the object type of the record to be updated, such as Account or Contact. The API name is used to identify Salesforce record field-value pairs from the user request.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "userInput" : {
+      "title" : "User Input",
+      "description" : " The complete original user input, including any additional relevant text from the conversation. For example, if the user input is, 'Replace the John Smith's description with the summary' then the complete input for the action is 'Update John Smith's description to {summary}'.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "The complete original user input. Don't omit the input or remove any words from the original input received from the user. For example, if the user input is, 'Update the Acme account with the new phone number 415-555-2312' then the input for the action must be 'Update the Acme account with the new phone number 415-555-2312'. If any additional text from the conversation history should be included as a value, add it here. For example, if the user input is, 'Replace the John Smith's description with the summary' then the input for the action must be 'Update John Smith's description to {summary}'. When additional text is needed, don't forget to include the whole text. ALWAYS include a field name. If you can’t find it, look in the conversation history.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

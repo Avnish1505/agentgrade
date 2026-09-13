@@ -1,0 +1,16 @@
+{
+  "required" : [ "activityId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "activityId" : {
+      "title" : "Activity ID",
+      "description" : "The record ID of a Call, Email, Task, or Event.",
+      "lightning:type" : "lightning__recordIdType",
+      "einstein:description" : "The ID of a Call, Email, Task, or Event record.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

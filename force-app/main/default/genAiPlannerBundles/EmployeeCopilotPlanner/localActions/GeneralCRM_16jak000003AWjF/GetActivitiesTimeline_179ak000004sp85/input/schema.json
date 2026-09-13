@@ -1,0 +1,43 @@
+{
+  "required" : [ "recordId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "recordId" : {
+      "title" : "Record ID",
+      "description" : "The Salesforce record ID for which activities are being fetched.",
+      "lightning:type" : "lightning__recordIdType",
+      "einstein:description" : "The ID of the requested object for which activities are to be fetched.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "activityTypes" : {
+      "title" : "Activity Types",
+      "description" : "A list of activity types used to retrieve the timeline. For example, Call, Email, Task, and Event.",
+      "items" : {
+        "lightning:type" : "lightning__textType"
+      },
+      "lightning:type" : "lightning__listType",
+      "einstein:description" : "A list of activity types used to retrieve the timeline. Type can be strictly either Call, Email, Task, Event.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "fromDateTime" : {
+      "title" : "From Date Time",
+      "description" : "The start date and time in the format yyyy-MM-ddTHH:mm. Timezone information isn't included.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "The start date and time in the format yyyy-MM-ddTHH:mm. Strictly follow this format. Timezone information is not included.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "toDateTime" : {
+      "title" : "To Date Time",
+      "description" : "The end date and time in the format yyyy-MM-ddTHH:mm. Timezone information isn't included.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "The end date and time in the format yyyy-MM-ddTHH:mm. Strictly follow this format. Timezone information is not included.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

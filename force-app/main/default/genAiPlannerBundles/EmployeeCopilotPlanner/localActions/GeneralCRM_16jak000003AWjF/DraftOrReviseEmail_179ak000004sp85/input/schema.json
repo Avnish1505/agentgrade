@@ -1,0 +1,52 @@
+{
+  "required" : [ "recordId", "userInput" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "recordId" : {
+      "title" : "Record ID",
+      "description" : "The primary Salesforce record ID used to retrieve the main recipient's email address. For revised emails, the record ID is retrieved from the conversation history.",
+      "lightning:type" : "lightning__recordIdType",
+      "einstein:description" : "The primary Salesforce record ID used to retrieve the main recipient's email address. Must be an 18-digit string.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "additionalRecordIds" : {
+      "title" : "Additional Record IDs",
+      "description" : "Optional list of additional Salesforce record IDs to retrieve more recipients' email addresses.",
+      "maxItems" : 49,
+      "items" : {
+        "lightning:type" : "lightning__recordIdType"
+      },
+      "lightning:type" : "lightning__listType",
+      "einstein:description" : "Optional list of additional Salesforce record IDs to retrieve more recipients' email addresses.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "userInput" : {
+      "title" : "User Input",
+      "description" : "A string provided by the user with instructions for drafting or revising the email.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "A string containing instructions for drafting or revising the email.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "supportiveTextualData" : {
+      "title" : "Supportive Textual Data",
+      "description" : "Textual data relevant to drafting the email, including conversation history and results from prior actions.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "All textual data that may be relevant to drafting the email. It may include conversation history and prior action results.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "latestEmailDraft" : {
+      "title" : "Latest Email Draft",
+      "description" : "The latest version of the email draft. Required only when revising a previous draft. Retrieve the draft from the conversation history.",
+      "lightning:type" : "lightning__emailType",
+      "einstein:description" : "A JSON object containing the latest version of the email draft. AdditionalRecordIds must be an empty array and only used when the user wants to revise an earlier draft. The email must be retrieved from the conversation history.",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

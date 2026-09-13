@@ -1,0 +1,22 @@
+{
+  "required" : [ "query" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "query" : {
+      "title" : "query",
+      "description" : "The complete query utterance in natural language with appropriate context which can include appropriate CRM object name, record name, and record id to facilitate aggregating fields on CRM records. Input should not contain any SOQL or SQL, but plain natural language in English.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "customizationInstructions" : {
+      "title" : "customizationInstructions",
+      "description" : "Custom instructions for the action from the user's input to optimize the query.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

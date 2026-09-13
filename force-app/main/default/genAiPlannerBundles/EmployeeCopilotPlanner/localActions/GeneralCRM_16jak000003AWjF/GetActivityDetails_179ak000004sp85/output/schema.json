@@ -1,0 +1,16 @@
+{
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "activityDetails" : {
+      "title" : "Activity Details",
+      "description" : "The data for the activity record, including its content and other relevant details.",
+      "lightning:type" : "lightning__textType",
+      "einstein:description" : "The data for the activity record in Salesforce, including its content and other relevant details.",
+      "lightning:isPII" : false,
+      "copilotAction:isDisplayable" : false,
+      "copilotAction:isUsedByPlanner" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}
