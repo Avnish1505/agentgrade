@@ -116,6 +116,8 @@ TODO. Cover: action failure, ambiguous intent, guardrail violation, repeated fai
 
 Note on the grounding check: an LLM-as-judge baseline once outperformed my deterministic detector on a previous benchmark project. That result is why the judge here is scoped to the one check that genuinely needs language understanding, and why its disagreements with the deterministic check are reported rather than hidden.
 
+Note (Phase 2 baseline, org-verified): ungrounded factual assertions were observed in the Phase 2 baseline run (`eval-harness/results/phase2-baseline.md`) — the agent stated an order lookup result and a policy answer without invoking the underlying action or data lookup. This is the grounding failure mode the harness's grounding check is meant to catch.
+
 **Pacing** — the Developer Edition allows a limited number of LLM generations per hour. The runner paces requests to stay under it and resumes cleanly. TODO: record the measured generations consumed by one full suite run.
 
 ## 8. Observability
