@@ -20,11 +20,15 @@ TODO: two paragraphs of prose explaining the flow.
 
 Diagram: `diagrams/topology.mmd`
 
-| Subagent | Purpose | Actions it can call |
-| --- | --- | --- |
-| Order Status | Answer questions about an existing order | GetOrderStatus, GroundedPolicyAnswer |
-| Returns and Refunds | Handle return and refund requests | CheckReturnWindow, ProcessRefund, CreateEscalationCase |
-| Fallback | Anything else | LogUnhandled, CreateEscalationCase |
+As authored in `force-app/main/default/aiAuthoringBundles/AgentGrade/AgentGrade.agent` (read from the file, not from an earlier plan):
+
+| Subagent | Description (from file) | Actions wired (from file) | Instructions |
+| --- | --- | --- | --- |
+| OrderStatus | Looks up order status, dates and total for the customer. | GetOrderStatus | |
+| ReturnsRefunds | Checks return-window eligibility and escalates return requests to a human. | CheckReturnWindow, CreateEscalationCase | |
+| Fallback | Records a user message the agent could not handle, for later human review. | LogUnhandled | |
+
+ProcessRefund is not wired to any subagent, by design (see section 3).
 
 TODO: paste the final instructions for each subagent here once written.
 
