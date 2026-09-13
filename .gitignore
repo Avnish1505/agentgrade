@@ -6,6 +6,7 @@ config.yaml
 eval-harness/results/*.json
 eval-harness/results/*.md
 !eval-harness/results/.gitkeep
+!eval-harness/results/baselines/
 .sf/
 .sfdx/
 node_modules/
