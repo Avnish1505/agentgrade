@@ -1,0 +1,12 @@
+flowchart LR
+  START[Request] --> C{Classify intent}
+  C -->|order query| T1[Order Status]
+  C -->|refund or return| T2[Returns and Refunds]
+  C -->|anything else| T3[Fallback]
+  T1 --> A1[GetOrderStatus]
+  T1 --> A2[GroundedPolicyAnswer]
+  T2 --> G{Gate:<br/>within cap?<br/>within window?<br/>owns order?}
+  G -->|all pass| A3[ProcessRefund]
+  G -->|any fail| A4[CreateEscalationCase]
+  T3 --> A5[LogUnhandled]
+  T3 --> A4

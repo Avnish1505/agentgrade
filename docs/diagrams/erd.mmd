@@ -1,0 +1,5 @@
+erDiagram
+  ACCOUNT ||--o{ ORDER : places
+  ORDER ||--o{ RETURN_REQUEST : has
+  RETURN_REQUEST ||--o| ESCALATION_CASE : may_create
+  REFUND_POLICY ||--o{ RETURN_REQUEST : governs

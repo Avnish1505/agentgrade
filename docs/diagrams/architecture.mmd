@@ -1,0 +1,24 @@
+flowchart TB
+  U[Test client or user] -->|Agent API| A[Agentforce agent<br/>Developer Edition org]
+  subgraph SF[Salesforce org]
+    A --> R{Routing}
+    R --> S1[Subagent: Order Status]
+    R --> S2[Subagent: Returns and Refunds]
+    R --> S3[Subagent: Fallback]
+    S2 --> GATE[Agent Script gate<br/>deterministic checks]
+    GATE -->|pass| ACT[Apex and Flow actions]
+    GATE -->|fail| ESC[Escalate and create case]
+    S1 --> ACT
+    S1 --> RET[Data 360 retriever]
+    ACT --> OBJ[(Custom objects)]
+    RET --> OBJ
+    A --> TRACE[Session trace]
+  end
+  A -->|responses| H[Python eval harness]
+  TRACE -->|trace data| H
+  H --> M1[Routing accuracy]
+  H --> M2[Action sequence correctness]
+  H --> M3[Grounding faithfulness]
+  M1 --> DASH[Dashboard]
+  M2 --> DASH
+  M3 --> DASH

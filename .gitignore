@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+config.yaml
+eval-harness/results/*.json
+eval-harness/results/*.md
+!eval-harness/results/.gitkeep
+.sf/
+.sfdx/
+node_modules/

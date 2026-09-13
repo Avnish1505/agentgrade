@@ -1,0 +1,12 @@
+flowchart TB
+  TC[(testcases.csv)] --> RUN[Runner<br/>paced under hourly limit]
+  RUN -->|start session and send| API[Agent API]
+  API --> RESP[Response and session id]
+  RESP --> PULL[Fetch session trace]
+  PULL --> C1[Check: expected subagent?]
+  PULL --> C2[Check: expected action sequence?]
+  RESP --> C3[Check: claims carry citations?]
+  C1 --> AGG[Aggregate]
+  C2 --> AGG
+  C3 --> AGG
+  AGG --> OUT[results/latest.json<br/>+ report.md]

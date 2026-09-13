@@ -1,0 +1,26 @@
+# Copy to config.yaml and fill in. config.yaml is gitignored.
+
+org:
+  # VERIFY: your My Domain URL, e.g. https://your-domain.my.salesforce.com
+  instance_url: ""
+  # VERIFY: token endpoint for the client credentials flow
+  token_url: ""
+  client_id: ""
+  client_secret: ""
+
+agent:
+  # The agent id from Agent Builder
+  agent_id: ""
+  # VERIFY against current Agent API docs before use
+  api_base: ""
+
+rate_limit:
+  # Set this to the real hourly limit for your org, with headroom.
+  generations_per_hour: 120
+  # Generations consumed per test case. Measure this, do not assume.
+  generations_per_case: 2
+
+run:
+  timeout_seconds: 60
+  retry_attempts: 2
+  pause_between_cases_seconds: 1
