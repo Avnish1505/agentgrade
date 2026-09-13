@@ -1,5 +1,59 @@
+%% Matches the metadata actually deployed to the agentgrade org as of Phase 1
+%% (read from force-app/main/default/objects/*, not assumed from docs/SCHEMA.md).
+%%
+%% RefundPolicy__mdt is a Custom Metadata Type, not a related object: nothing
+%% in this schema holds a foreign key to it. The Phase 3 gate reads its
+%% MaxAutoRefund__c / ReturnWindowDays__c values by configuration, not by a
+%% lookup relationship, so it is drawn below with no connecting edge.
+
 erDiagram
-  ACCOUNT ||--o{ ORDER : places
-  ORDER ||--o{ RETURN_REQUEST : has
-  RETURN_REQUEST ||--o| ESCALATION_CASE : may_create
-  REFUND_POLICY ||--o{ RETURN_REQUEST : governs
+  Account |o--o{ Order__c : "places (optional)"
+  Order__c ||--o{ OrderItem__c : "contains (master-detail, required)"
+  Order__c |o--o{ ReturnRequest__c : "may reference (optional)"
+  OrderItem__c |o--o{ ReturnRequest__c : "may reference (optional)"
+  Case |o--o{ ReturnRequest__c : "escalated to (optional)"
+
+  Account {
+    string Id PK
+  }
+
+  Order__c {
+    string Name PK "AutoNumber, format ORD-{0000}"
+    string Account__c FK "Lookup(Account), optional"
+    string CustomerEmail__c "Email"
+    date OrderDate__c
+    date DeliveredDate__c "blank unless Shipped/Delivered"
+    currency TotalAmount__c "Currency(18,2), set explicitly, not a rollup"
+    string Status__c "Picklist: Pending|Shipped|Delivered|Cancelled"
+  }
+
+  OrderItem__c {
+    string Name PK "Text"
+    string Order__c FK "MasterDetail(Order__c), required"
+    string ProductName__c "Text(120)"
+    int Quantity__c "Number(3,0)"
+    currency UnitPrice__c "Currency(18,2)"
+    currency LineTotal__c "Formula Currency(18,2): Quantity__c * UnitPrice__c"
+  }
+
+  ReturnRequest__c {
+    string Name PK "Text"
+    string Order__c FK "Lookup(Order__c), optional"
+    string OrderItem__c FK "Lookup(OrderItem__c), optional"
+    currency RequestedAmount__c "Currency(18,2)"
+    string Reason__c "Picklist: Damaged|Wrong item|Not as described|Changed mind"
+    string Outcome__c "Picklist: Pending|Approved|Blocked|Escalated"
+    string DecisionReason__c "Text(255)"
+    string EscalationCase__c FK "Lookup(Case), optional"
+  }
+
+  Case {
+    string Id PK
+  }
+
+  RefundPolicy__mdt {
+    string DeveloperName PK "e.g. Default"
+    number MaxAutoRefund__c "Number(18,2) - not Currency, unsupported on Custom Metadata Type fields"
+    number ReturnWindowDays__c "Number(3,0)"
+    string AppliesToCategory__c "Text(255), unset on Default"
+  }
