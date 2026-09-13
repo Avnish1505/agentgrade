@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Read/create/edit on Order__c, OrderItem__c, ReturnRequest__c plus read on Case. Metadata API deploys do not grant FLS automatically - assign this to any user or agent-running user that needs these records.</description>
+    <description>Read/create/edit on Order__c, OrderItem__c, ReturnRequest__c and Case. Metadata API deploys do not grant FLS automatically - assign this to any user or agent-running user that needs these records.</description>
     <fieldPermissions>
         <editable>true</editable>
         <field>OrderItem__c.LineTotal__c</field>
@@ -89,9 +89,9 @@
     <hasActivationRequired>false</hasActivationRequired>
     <label>AgentGrade Access</label>
     <objectPermissions>
-        <allowCreate>false</allowCreate>
+        <allowCreate>true</allowCreate>
         <allowDelete>false</allowDelete>
-        <allowEdit>false</allowEdit>
+        <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>false</modifyAllRecords>
         <object>Case</object>
