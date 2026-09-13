@@ -100,6 +100,8 @@ TODO. Which session trace fields are consumed, how latency is derived, and what 
 
 TODO. Agent user permissions, field level access, what data the agent can and cannot see, and where the Einstein Trust Layer sits in the flow.
 
+Note (Phase 1, org-verified): Metadata API deploys do not grant field-level security — a freshly deployed custom field is invisible to SOQL and Apex ("No such column") for every profile until FLS is granted explicitly, confirmed via `FieldPermissions` for this org. `AgentGrade_Access` (`force-app/main/default/permissionsets/`) is the permission set that grants it for `Order__c`, `OrderItem__c`, `ReturnRequest__c`, and read on `Case`; assign it to any user or agent-running user that needs these records.
+
 ## 10. Platform limits and constraints
 
 TODO: record the actual limits you hit, with dates. Verify each against current Salesforce documentation before quoting it in an interview; limits change between releases.

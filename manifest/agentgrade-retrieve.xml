@@ -119,6 +119,10 @@
         <name>GenAiPromptTemplateActv</name>
     </types>
     <types>
+        <members>AgentGrade_Access</members>
+        <name>PermissionSet</name>
+    </types>
+    <types>
         <members>*</members>
         <name>ServiceAISetupDefinition</name>
     </types>
