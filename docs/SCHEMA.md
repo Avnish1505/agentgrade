@@ -9,36 +9,57 @@ Status: draft
 
 ERD: `diagrams/erd.mmd`
 
+Escalations use the standard `Case` object, not a custom object. Refund
+policy is a Custom Metadata Type (`RefundPolicy__mdt`), not a custom object,
+because it is configuration rather than data — see below.
+
 ### Order__c
+A customer order. Parent of `OrderItem__c` (master-detail) and referenced by `ReturnRequest__c` (lookup).
+
 | Field | Type | Notes |
 | --- | --- | --- |
-| Name | Auto number | Order number |
-| Account__c | Lookup | TODO |
+| Name | Auto number, format `ORD-{0000}` | Order number |
+| Account__c | Lookup(Account) | Optional; not required |
+| CustomerEmail__c | Email | |
 | OrderDate__c | Date | Drives the return window calculation |
-| TotalAmount__c | Currency | TODO |
-| Status__c | Picklist | TODO: list the values |
+| DeliveredDate__c | Date | Set once the order ships and is delivered; blank for Pending/Shipped/Cancelled |
+| TotalAmount__c | Currency(18,2) | Not a rollup — set explicitly (e.g. by `seed_data.apex`, later by Apex actions) |
+| Status__c | Picklist, restricted | Pending (default), Shipped, Delivered, Cancelled |
+
+### OrderItem__c
+A line item on an Order__c. Sharing model `ControlledByParent` (inherits from Order__c).
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| Name | Text | Line item label |
+| Order__c | Master-detail(Order__c) | Required; deleting the Order__c cascades to its items |
+| ProductName__c | Text(120) | |
+| Quantity__c | Number(3,0) | |
+| UnitPrice__c | Currency(18,2) | |
+| LineTotal__c | Formula, Currency(18,2) | `Quantity__c * UnitPrice__c`; blanks treated as zero |
 
 ### ReturnRequest__c
-| Field | Type | Notes |
-| --- | --- | --- |
-| Order__c | Master-detail | TODO |
-| RequestedAmount__c | Currency | Compared against the policy cap by the gate |
-| Reason__c | Picklist | TODO |
-| Outcome__c | Picklist | Approved, Blocked, Escalated |
+A customer request to return an order or line item. Outcome is decided by the Phase 3 deterministic gate.
 
-### RefundPolicy__c
 | Field | Type | Notes |
 | --- | --- | --- |
-| MaxAutoRefund__c | Currency | The cap the gate enforces |
-| ReturnWindowDays__c | Number | TODO |
-| AppliesTo__c | Picklist | TODO |
+| Name | Text | |
+| Order__c | Lookup(Order__c) | |
+| OrderItem__c | Lookup(OrderItem__c) | |
+| RequestedAmount__c | Currency(18,2) | Compared against `RefundPolicy__mdt.MaxAutoRefund__c` by the gate |
+| Reason__c | Picklist, restricted | Damaged, Wrong item, Not as described, Changed mind |
+| Outcome__c | Picklist, restricted | Pending (default), Approved, Blocked, Escalated |
+| DecisionReason__c | Text(255) | Why the gate reached its outcome |
+| EscalationCase__c | Lookup(Case) | Populated when Outcome__c = Escalated |
 
-### EscalationCase__c
+### RefundPolicy__mdt (Custom Metadata Type, not a custom object)
+Configuration the deterministic gate reads, not transactional data. One record deployed: `RefundPolicy.Default`.
+
 | Field | Type | Notes |
 | --- | --- | --- |
-| ReturnRequest__c | Lookup | TODO |
-| Reason__c | Text | Why the gate blocked it |
-| ContextSummary__c | Long text | Written by the model |
+| MaxAutoRefund__c | **Number(18,2)** | The auto-approve cap the gate enforces. Not Currency: Salesforce custom metadata fields do not support the Currency type (org-verified — deploy fails with `Type Currency ... is not supported for the Entity RefundPolicy__mdt`), so this is a plain Number despite the field name. Default record value: 500 |
+| ReturnWindowDays__c | Number(3,0) | Default record value: 30 |
+| AppliesToCategory__c | Text(255) | Unset on the Default record (blank = applies to all categories) |
 
 TODO: adjust these as you build. Keep this table matching the org, or it becomes a lie.
 

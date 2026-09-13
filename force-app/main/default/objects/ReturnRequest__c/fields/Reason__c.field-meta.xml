@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Reason__c</fullName>
+    <label>Reason</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Damaged</fullName>
+                <default>false</default>
+                <label>Damaged</label>
+            </value>
+            <value>
+                <fullName>Wrong item</fullName>
+                <default>false</default>
+                <label>Wrong item</label>
+            </value>
+            <value>
+                <fullName>Not as described</fullName>
+                <default>false</default>
+                <label>Not as described</label>
+            </value>
+            <value>
+                <fullName>Changed mind</fullName>
+                <default>false</default>
+                <label>Changed mind</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

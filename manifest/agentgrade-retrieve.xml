@@ -49,7 +49,44 @@
         <name>BotTemplate</name>
     </types>
     <types>
+        <members>Copilot_for_Salesforce.v1</members>
+        <name>BotVersion</name>
+    </types>
+    <types>
+        <members>OrderItem__c.LineTotal__c</members>
+        <members>OrderItem__c.Order__c</members>
+        <members>OrderItem__c.ProductName__c</members>
+        <members>OrderItem__c.Quantity__c</members>
+        <members>OrderItem__c.UnitPrice__c</members>
+        <members>Order__c.Account__c</members>
+        <members>Order__c.CustomerEmail__c</members>
+        <members>Order__c.DeliveredDate__c</members>
+        <members>Order__c.OrderDate__c</members>
+        <members>Order__c.Status__c</members>
+        <members>Order__c.TotalAmount__c</members>
+        <members>RefundPolicy__mdt.AppliesToCategory__c</members>
+        <members>RefundPolicy__mdt.MaxAutoRefund__c</members>
+        <members>RefundPolicy__mdt.ReturnWindowDays__c</members>
+        <members>ReturnRequest__c.DecisionReason__c</members>
+        <members>ReturnRequest__c.EscalationCase__c</members>
+        <members>ReturnRequest__c.OrderItem__c</members>
+        <members>ReturnRequest__c.Order__c</members>
+        <members>ReturnRequest__c.Outcome__c</members>
+        <members>ReturnRequest__c.Reason__c</members>
+        <members>ReturnRequest__c.RequestedAmount__c</members>
+        <name>CustomField</name>
+    </types>
+    <types>
         <members>*</members>
+        <members>RefundPolicy.Default</members>
+        <name>CustomMetadata</name>
+    </types>
+    <types>
+        <members>*</members>
+        <members>OrderItem__c</members>
+        <members>Order__c</members>
+        <members>RefundPolicy__mdt</members>
+        <members>ReturnRequest__c</members>
         <name>CustomObject</name>
     </types>
     <types>
@@ -58,6 +95,7 @@
     </types>
     <types>
         <members>*</members>
+        <members>sfdc_default_ReportExport_Protection_Flow</members>
         <name>Flow</name>
     </types>
     <types>

@@ -30,6 +30,6 @@ Expected contents once Phases 1 to 4 are done:
 - `objects/` — Order, ReturnRequest, RefundPolicy, EscalationCase
 - `classes/` — the Apex actions and their tests
 - `flows/` — Flow based actions
-- `genAiPlanners/`, `genAiPlannerBundles/`, `aiAuthoringBundles/`, `bots/` — agent configuration
+- `genAiPlannerBundles/`, `aiAuthoringBundles/`, `bots/` — agent configuration (this org's agents are `AiAuthoringBundle` — a `.agent` Agent Script file plus `.bundle-meta.xml` — not the older `GenAiPlannerBundle`/`GenAiPlugin` shape; `genAiPlannerBundles/` here is the default Employee Copilot only)
 
 Retrieve and commit after every working session. This is your backup if the org lapses.

@@ -9,3 +9,4 @@ eval-harness/results/*.md
 .sf/
 .sfdx/
 node_modules/
+.claude/
