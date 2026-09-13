@@ -44,6 +44,8 @@ This table is the intellectual core of the project. Every row is a decision, and
 
 TODO: add rows as you build. If a row is hard to classify, that is the interesting part — write down why.
 
+Note (Phase 2): ProcessRefund itself enforces none of the rows above — it is a plain executor that creates an Approved ReturnRequest__c for whatever amount it is given, with no cap, window or ownership check. That is deliberate: all three checks live only in the Phase 3 Agent Script gate, so Phase 5 can measure the agent's behavior with and without that gate in front of this action.
+
 ## 4. Grounding and retrieval design
 
 TODO once Phase 4 is done or cut.
@@ -54,23 +56,43 @@ If grounding was cut, say so plainly here and describe the fallback. A documente
 
 ## 5. Actions
 
-For each action: inputs, outputs, errors, and limits.
+For each action: inputs, outputs, errors, and limits. All five are `@InvocableMethod` Apex classes in `force-app/main/default/classes/`, bulk-safe (each does a fixed number of SOQL/DML statements regardless of list size), and designed to never throw for bad input — a malformed Id or a missing record produces a result with `success`/`found = false` and a message, not an exception.
 
 ### GetOrderStatus
-- Type: Apex
-- Inputs: TODO
-- Outputs: TODO
-- Failure modes: TODO
+- Type: Apex (`GetOrderStatus.getOrderStatus`)
+- Inputs: `orderNumber` (String, optional), `customerEmail` (String, optional). If both are given, order number takes precedence.
+- Outputs: `found` (Boolean), `orderNumber`, `status`, `orderDate`, `deliveredDate`, `totalAmount`, `message`
+- Failure modes: neither input given, or no matching order → `found = false` with an explanatory message. By email, returns only the single most recent order (by `OrderDate__c`) if the customer has more than one.
 - Limits to respect: bulkification, action timeout
 
-### ProcessRefund
-- Type: Apex
-- Inputs: TODO
-- Outputs: TODO
-- Precondition: the Agent Script gate must have passed. This action must be unreachable otherwise.
-- Failure modes: TODO
+### CheckReturnWindow
+- Type: Apex (`CheckReturnWindow.checkReturnWindow`)
+- Inputs: `orderId` (String, optional), `orderNumber` (String, optional). Order Id takes precedence if both are given.
+- Outputs: `found`, `isDelivered`, `insideWindow`, `daysSinceDelivery`, `windowDays` (read from `RefundPolicy__mdt.Default.ReturnWindowDays__c`), `message`
+- Failure modes: neither input given, no matching order, or a malformed Id → `found = false`. Not yet delivered → `isDelivered = false`, `insideWindow` and `daysSinceDelivery` left blank. Missing `RefundPolicy__mdt.Default` record → `windowDays` and `insideWindow` left blank rather than guessing a default.
+- Fact-only: does not approve, deny, or process anything.
 
-TODO: repeat for the remaining actions.
+### ProcessRefund
+- Type: Apex (`ProcessRefund.processRefund`)
+- Inputs: `orderId` (String, required), `orderItemId` (String, optional — blank for a whole-order refund), `amount` (Decimal, required), `reason` (String, required — must be one of `ReturnRequest__c.Reason__c`'s restricted picklist values or the insert fails)
+- Outputs: `success`, `returnRequestId`, `message`
+- Creates a `ReturnRequest__c` with `Outcome__c = 'Approved'` unconditionally.
+- Precondition: the Agent Script gate must have passed. This action must be unreachable otherwise - see the note in section 3.
+- Failure modes: malformed `orderId`/`orderItemId`, or a DML-level rejection (e.g. an invalid `reason` value) → `success = false` with the platform error message, per request, without failing the whole batch.
+
+### CreateEscalationCase
+- Type: Apex (`CreateEscalationCase.createEscalationCase`)
+- Inputs: `orderId` (String, required — recorded in the case description; Case has no direct order relationship), `reason` (String, required — becomes the case subject), `contextSummary` (String, required), `returnRequestId` (String, optional)
+- Outputs: `success`, `caseId`, `caseNumber`, `message`
+- If `returnRequestId` is supplied: sets that record's `Outcome__c = 'Escalated'`, `DecisionReason__c = reason`, and `EscalationCase__c` to the new case.
+- Failure modes: the Case insert itself failing (e.g. an oversized `contextSummary`) → `success = false`. A malformed or nonexistent `returnRequestId` does not fail the case creation - the case is still created and the result message carries a warning instead.
+
+### LogUnhandled
+- Type: Apex (`LogUnhandled.logUnhandled`)
+- Inputs: `utterance` (String, required)
+- Outputs: `success`, `caseId`, `message`
+- Creates a Case with a fixed `Subject` (`AgentGrade: Unhandled Utterance`) and the utterance as `Description`, rather than a new object.
+- Failure modes: DML-level rejection (e.g. an oversized utterance) → `success = false`.
 
 ## 6. Error handling and escalation
 
