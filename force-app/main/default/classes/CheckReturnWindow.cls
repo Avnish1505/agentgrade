@@ -12,6 +12,9 @@ public with sharing class CheckReturnWindow {
 
         @InvocableVariable(label='Order Number' description='The order number, for example ORD-0042. Use this when the record Id is not known. If both fields are provided, order Id takes precedence.' required=false)
         public String orderNumber;
+
+        @InvocableVariable(label='Order Item Id' description='The Salesforce record Id of a specific line item on the order, for example from Get Order Items. Optional - when provided, the result also reports the line total and returnable flag for that item.' required=false)
+        public String orderItemId;
     }
 
     public class Result {
@@ -30,16 +33,23 @@ public with sharing class CheckReturnWindow {
         @InvocableVariable(label='Window Days' description='The return window length, in days, used for this check (from RefundPolicy__mdt.Default). Blank if that policy record is missing.')
         public Integer windowDays;
 
+        @InvocableVariable(label='Line Total' description='The line total of the item identified by Order Item Id. Blank if no Order Item Id was given, it does not exist, or it belongs to a different order.')
+        public Decimal lineTotal;
+
+        @InvocableVariable(label='Is Returnable' description='Whether the item identified by Order Item Id is marked returnable. Blank (not true) if no Order Item Id was given, it does not exist, or it belongs to a different order - never defaults to true.')
+        public Boolean isReturnable;
+
         @InvocableVariable(label='Message' description='A short human-readable explanation, especially when the order was not found or has not shipped yet.')
         public String message;
     }
 
-    @InvocableMethod(label='Check Return Window' description='Reports whether an order is still within the policy return window, and how many days since delivery. Factual only - it does not approve, deny or process any refund. Use it to gather facts before a return decision is made elsewhere.')
+    @InvocableMethod(label='Check Return Window' description='Reports whether an order is still within the policy return window, and how many days since delivery. Optionally also reports a specific line item total and returnable flag. Factual only - it does not approve, deny or process any refund. Use it to gather facts before a return decision is made elsewhere.')
     public static List<Result> checkReturnWindow(List<Request> requests) {
         Integer windowDays = getWindowDays();
 
         Set<Id> validIds = new Set<Id>();
         Set<String> orderNumbers = new Set<String>();
+        Set<Id> validItemIds = new Set<Id>();
         for (Request req : requests) {
             String rawId = req.orderId != null ? req.orderId.trim() : null;
             if (String.isNotBlank(rawId)) {
@@ -50,6 +60,15 @@ public with sharing class CheckReturnWindow {
                 }
             } else if (String.isNotBlank(req.orderNumber)) {
                 orderNumbers.add(req.orderNumber.trim());
+            }
+
+            String rawItemId = req.orderItemId != null ? req.orderItemId.trim() : null;
+            if (String.isNotBlank(rawItemId)) {
+                try {
+                    validItemIds.add((Id) rawItemId);
+                } catch (Exception e) {
+                    // Not a valid Id format; item outputs are left blank in buildResult.
+                }
             }
         }
 
@@ -67,9 +86,20 @@ public with sharing class CheckReturnWindow {
             }
         }
 
+        Map<Id, OrderItem__c> itemsById = new Map<Id, OrderItem__c>();
+        if (!validItemIds.isEmpty()) {
+            for (OrderItem__c item : [
+                SELECT Id, LineTotal__c, IsReturnable__c, Order__c
+                FROM OrderItem__c
+                WHERE Id IN :validItemIds
+            ]) {
+                itemsById.put(item.Id, item);
+            }
+        }
+
         List<Result> results = new List<Result>();
         for (Request req : requests) {
-            results.add(buildResult(req, byId, byOrderNumber, windowDays));
+            results.add(buildResult(req, byId, byOrderNumber, itemsById, windowDays));
         }
         return results;
     }
@@ -87,7 +117,7 @@ public with sharing class CheckReturnWindow {
         return Integer.valueOf(policies[0].ReturnWindowDays__c);
     }
 
-    private static Result buildResult(Request req, Map<Id, Order__c> byId, Map<String, Order__c> byOrderNumber, Integer windowDays) {
+    private static Result buildResult(Request req, Map<Id, Order__c> byId, Map<String, Order__c> byOrderNumber, Map<Id, OrderItem__c> itemsById, Integer windowDays) {
         Result res = new Result();
         res.windowDays = windowDays;
 
@@ -120,6 +150,7 @@ public with sharing class CheckReturnWindow {
         }
 
         res.found = true;
+        applyItemFields(req, o, itemsById, res);
 
         if (o.DeliveredDate__c == null) {
             res.isDelivered = false;
@@ -135,5 +166,32 @@ public with sharing class CheckReturnWindow {
         }
         res.message = 'Order ' + o.Name + ' was delivered ' + days + ' day(s) ago.';
         return res;
+    }
+
+    // Populates lineTotal/isReturnable on the result when orderItemId is
+    // given AND resolves to a real OrderItem__c belonging to the matched
+    // order. Left blank (not defaulted to any value) otherwise, including
+    // when the item exists but belongs to a different order - the gate must
+    // never treat "cannot verify" as "returnable".
+    private static void applyItemFields(Request req, Order__c matchedOrder, Map<Id, OrderItem__c> itemsById, Result res) {
+        String rawItemId = req.orderItemId != null ? req.orderItemId.trim() : null;
+        if (String.isBlank(rawItemId)) {
+            return;
+        }
+
+        Id itemId;
+        try {
+            itemId = (Id) rawItemId;
+        } catch (Exception e) {
+            return;
+        }
+
+        OrderItem__c item = itemsById.get(itemId);
+        if (item == null || item.Order__c != matchedOrder.Id) {
+            return;
+        }
+
+        res.lineTotal = item.LineTotal__c;
+        res.isReturnable = item.IsReturnable__c;
     }
 }
