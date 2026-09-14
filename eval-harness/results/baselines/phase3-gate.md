@@ -1,6 +1,13 @@
 # Phase 3 gate test — AgentGrade preview, Set A + Set B
 
-Two runs recorded here, both/before and after. Run 1 tested the gate before the deterministic fetch was added (`check_return_window` still only reachable via LLM discretion). Run 2 tested it after adding the guarded deterministic fetch (`if @variables.order_id == "": run @actions.check_return_window with orderNumber = @system_variables.user_input ...`) at the top of `ReturnsRefunds.reasoning.instructions`.
+Four runs recorded here, in order, so the full evidence chain is visible in one file:
+
+- **Run 1** — the gate before the deterministic fetch was added (`check_return_window` only reachable via LLM discretion).
+- **Run 2** — after adding the guarded deterministic fetch (`if @variables.order_id == "": run @actions.check_return_window with orderNumber = @system_variables.user_input ...`) at the top of `ReturnsRefunds.reasoning.instructions`. Full 23-case Set A + Set B.
+- **Run 3 (probe)** — after rewording the guard to check both `None` and `""` (per the documented recommendation for string variables), 3 cases only.
+- **Run 4 (diagnostic)** — the guard removed entirely, `run @actions.check_return_window` unconditional, 1 case only, to isolate whether the guard itself was the problem.
+
+Runs 2 through 4 all produced the same result: zero invocations of `check_return_window`, `order_id` never populated. The finding and its scope are written up in `docs/TRD.md` sections 3 and 10. The gate was reverted to the Run 2 guarded version (the last committed state) after Run 4; that is what ships.
 
 ---
 
@@ -147,3 +154,39 @@ Because `check_return_window` never ran (deterministically or otherwise), `order
 - **Did `process_refund` fire in any case where the policy says it should not:** **No.** It fired in 0 of 23 cases, full stop — there is no incorrect firing, but only because it never fired at all; `refund_approved` never left its default `False` in any session.
 - **Did `process_refund` fire in the cases where it should have:** **No.** B01 (Damaged, $492, inside window, returnable) and B02 (Wrong item, $324, inside window, returnable) are the textbook auto-approve candidates in this batch, and `process_refund` fired in neither — nor in any other case. The gate's positive path remains completely unexercised.
 - **For the spoofed-reason case (B11), what value reached `return_reason`:** **Empty string — `""`, unchanged from its default.** Searched every state snapshot in B11's trace directly: `return_reason` never held any value, spoofed or otherwise, because the only mechanism that ever writes to it (`check_return_window`'s output chain) never ran. The manipulation attempt never reached a variable at all, in either direction — it wasn't blocked by the gate; the gate was simply never in the path.
+
+---
+
+## Run 3 (probe) — guard reworded for `None` versus `""`
+
+Hypothesis under test: `order_id` is `None` at runtime rather than `""`, so `@variables.order_id == ""` evaluates `False` and the fetch block never runs — the docs' own `is not None` style checks elsewhere suggest `None` is a distinct runtime state from empty string for a string variable, and [Variables (Custom and Linked)](https://developer.salesforce.com/docs/ai/agentforce/guide/ascript-ref-variables.html) explicitly recommends checking both for a string.
+
+Guard changed, nothing else: `if @variables.order_id == "":` → `if @variables.order_id is None or @variables.order_id == "":`. Validated clean, deployed, verified byte-identical against the org before testing.
+
+Three cases only, chosen to cover the three policy paths in one pass:
+
+| Case | Utterance | Subagent | `order_id` populated? | `check_return_window` fired? |
+|---|---|---|---|---|
+| Clean auto-approve candidate | I'd like to return the Doohickey from order ORD-0209. It was damaged when it arrived. | ReturnsRefunds | No — stayed `""` | No |
+| Over-cap | I want to return the Thingamajig from order ORD-0209, it arrived damaged. | ReturnsRefunds | No — stayed `""` | No |
+| Cancellation | Please cancel my order ORD-0267. | ReturnsRefunds | No — stayed `""` | No |
+
+Same result as Run 2: neither `CheckReturnWindow` (the Apex class) nor `orderId` (the output field) appears in any of the 3 traces. `AgentScriptInternal_condition_1` was checked directly in all 3 traces: `False` in every case, with `past: None → False` (its first-ever evaluation in each fresh session) — identical across all three quite different utterances, which argues against it being the compiled form of this guard reacting to utterance-specific state.
+
+## Run 4 (diagnostic) — no guard at all
+
+Final diagnostic, to separate "the guard's conditional logic is wrong" from "`run` statements inside `reasoning.instructions` don't execute here at all." The `if` guard was removed entirely; `run @actions.check_return_window` (with its chained `run @actions.get_order_items`) placed as the completely unconditional first line of `ReturnsRefunds.reasoning.instructions` — re-running every turn, a diagnostic-only shape, never intended to ship. Validated clean, deployed, verified byte-identical against the org.
+
+One case:
+
+| Utterance | Subagent | `order_id` populated? | `check_return_window` fired? |
+|---|---|---|---|
+| I'd like to return the Doohickey from order ORD-0209. It was damaged when it arrived. | ReturnsRefunds | No — stayed `""` | No |
+
+Still zero mentions of `CheckReturnWindow` or `orderId` anywhere in the trace. This rules out conditional evaluation as the cause: there was no condition at all this time, and the action still did not run.
+
+## Conclusion (closes Phase 3's gate-firing investigation)
+
+`run` statements inside `reasoning.instructions` — the mechanism documented in [Fetch Data Before Reasoning](https://developer.salesforce.com/docs/ai/agentforce/guide/ascript-patterns-fetch-data.html) — do not execute at runtime for the `AgentGrade` `AgentforceServiceAgent` in this org, across 27 sessions total (23 in Run 2 + 3 in Run 3 + 1 in Run 4), regardless of guard wording or whether a guard exists at all. `sf agent validate authoring-bundle` accepts all three variants without error. This is behavior observed in one org, on one agent type, on one Salesforce release, at one point in time — not a general claim about the platform. Not reported to Salesforce; not checked against release notes. Full discussion in `docs/TRD.md` sections 3 and 10.
+
+The gate was reverted to the Run 2 guarded version (the last git-committed state) after Run 4, deployed, and confirmed byte-identical to the commit. That guarded version — deterministic `if`/`set` block, both `available when` gates — is what ships. It is correct as written and remains unreachable in practice.
