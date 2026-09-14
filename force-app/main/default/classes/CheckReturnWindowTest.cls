@@ -38,6 +38,7 @@ private class CheckReturnWindowTest {
         Test.stopTest();
 
         System.assertEquals(true, results[0].found);
+        System.assertEquals(o.Id, results[0].orderId);
         System.assertEquals(true, results[0].isDelivered);
         System.assertEquals(true, results[0].insideWindow);
         System.assertEquals(15, results[0].daysSinceDelivery);
@@ -46,7 +47,7 @@ private class CheckReturnWindowTest {
 
     @isTest
     static void testOutsideWindowByOrderNumber() {
-        Order__c o = [SELECT Name FROM Order__c WHERE CustomerEmail__c = 'outside@example.com'];
+        Order__c o = [SELECT Id, Name FROM Order__c WHERE CustomerEmail__c = 'outside@example.com'];
         CheckReturnWindow.Request req = new CheckReturnWindow.Request();
         req.orderNumber = o.Name;
 
@@ -55,6 +56,7 @@ private class CheckReturnWindowTest {
         Test.stopTest();
 
         System.assertEquals(true, results[0].found);
+        System.assertEquals(o.Id, results[0].orderId); // orderId is populated even when the request used orderNumber
         System.assertEquals(false, results[0].insideWindow);
         System.assertEquals(40, results[0].daysSinceDelivery);
     }

@@ -28,6 +28,9 @@ public with sharing class CheckReturnWindow {
         @InvocableVariable(label='Found' description='True if a matching order was found, false otherwise.')
         public Boolean found;
 
+        @InvocableVariable(label='Order Id' description='The Salesforce record Id of the matched order. Blank if not found. Use this to call Get Order Items, which requires the record Id rather than the order number.')
+        public String orderId;
+
         @InvocableVariable(label='Is Delivered' description='True if the order has a delivered date recorded. If false, days since delivery and the inside-window result do not apply.')
         public Boolean isDelivered;
 
@@ -161,6 +164,7 @@ public with sharing class CheckReturnWindow {
         }
 
         res.found = true;
+        res.orderId = o.Id;
         applyItemFields(req, o, itemsById, res);
 
         if (o.DeliveredDate__c == null) {
