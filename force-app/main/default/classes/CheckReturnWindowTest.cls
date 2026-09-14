@@ -221,6 +221,27 @@ private class CheckReturnWindowTest {
     }
 
     @isTest
+    static void testReasonEchoedAndBlankWhenOmitted() {
+        Order__c o = [SELECT Id FROM Order__c WHERE CustomerEmail__c = 'inside@example.com'];
+
+        CheckReturnWindow.Request withReason = new CheckReturnWindow.Request();
+        withReason.orderId = o.Id;
+        withReason.reason = 'Damaged';
+
+        CheckReturnWindow.Request withoutReason = new CheckReturnWindow.Request();
+        withoutReason.orderId = o.Id;
+
+        Test.startTest();
+        List<CheckReturnWindow.Result> results = CheckReturnWindow.checkReturnWindow(
+            new List<CheckReturnWindow.Request>{ withReason, withoutReason }
+        );
+        Test.stopTest();
+
+        System.assertEquals('Damaged', results[0].reason);
+        System.assertEquals(null, results[1].reason);
+    }
+
+    @isTest
     static void testItemBulk() {
         List<Order__c> bulkOrders = new List<Order__c>();
         for (Integer i = 0; i < 50; i++) {

@@ -1,8 +1,12 @@
 /**
  * Agentforce action: reports whether an order is inside the policy return
- * window. Reads RefundPolicy__mdt.Default for the window length. This is a
- * factual check only - it does not decide anything about refunds, and it
- * never throws for a missing order or a malformed Id.
+ * window, and optionally a specific line item's total and returnable flag.
+ * Reads RefundPolicy__mdt.Default for the window length. Also echoes back an
+ * optional customer-stated return reason unchanged, purely so a caller can
+ * capture it into a variable in the same call - CheckReturnWindow does not
+ * validate or interpret it. This is a factual check only - it does not
+ * decide anything about refunds, and it never throws for a missing order or
+ * a malformed Id.
  */
 public with sharing class CheckReturnWindow {
 
@@ -15,6 +19,9 @@ public with sharing class CheckReturnWindow {
 
         @InvocableVariable(label='Order Item Id' description='The Salesforce record Id of a specific line item on the order, for example from Get Order Items. Optional - when provided, the result also reports the line total and returnable flag for that item.' required=false)
         public String orderItemId;
+
+        @InvocableVariable(label='Reason' description='The customer-stated return reason, if known at the time of this call. Not validated or interpreted here - echoed back unchanged in the result so the caller can capture it into a variable for the reason-qualifies check. Leave blank if not yet known.' required=false)
+        public String reason;
     }
 
     public class Result {
@@ -38,6 +45,9 @@ public with sharing class CheckReturnWindow {
 
         @InvocableVariable(label='Is Returnable' description='Whether the item identified by Order Item Id is marked returnable. Blank (not true) if no Order Item Id was given, it does not exist, or it belongs to a different order - never defaults to true.')
         public Boolean isReturnable;
+
+        @InvocableVariable(label='Reason' description='Echoes the Reason input unchanged, so the caller can capture it into a variable. Blank if no reason was given. Not validated against the return-reason picklist here.')
+        public String reason;
 
         @InvocableVariable(label='Message' description='A short human-readable explanation, especially when the order was not found or has not shipped yet.')
         public String message;
@@ -120,6 +130,7 @@ public with sharing class CheckReturnWindow {
     private static Result buildResult(Request req, Map<Id, Order__c> byId, Map<String, Order__c> byOrderNumber, Map<Id, OrderItem__c> itemsById, Integer windowDays) {
         Result res = new Result();
         res.windowDays = windowDays;
+        res.reason = String.isNotBlank(req.reason) ? req.reason.trim() : null;
 
         String rawId = req.orderId != null ? req.orderId.trim() : null;
         String orderNumber = req.orderNumber != null ? req.orderNumber.trim() : null;
