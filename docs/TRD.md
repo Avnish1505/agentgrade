@@ -37,14 +37,21 @@ ProcessRefund is not wired to any subagent, by design (see section 3).
 This table is the intellectual core of the project. Every row is a decision, and every decision has exactly one owner.
 
 | Decision | Owner | Why |
-| --- | --- | --- |
+|---|---|---|
 | Which subagent handles the request | LLM | Intent classification is a language problem |
 | How the response is worded | LLM | Tone and phrasing |
-| Whether a refund is within the policy cap | Agent Script | A number comparison must never be negotiable |
-| Whether the item is inside the return window | Agent Script | Date arithmetic, not judgement |
+| Whether the order exists and its current status | Apex action | A data lookup, not a decision |
 | Whether the requester owns the order | Agent Script | Authorisation is never a model decision |
+| Whether the item was delivered within 30 days | Agent Script | Date arithmetic, not judgement |
+| Whether the refund amount is 500 or less | Agent Script | A number comparison must never be negotiable |
+| Whether the item is marked returnable | Agent Script | A stored flag, read not interpreted |
+| Whether the return reason qualifies for an automatic refund | Agent Script | The policy lists the qualifying reasons explicitly |
 | Whether to escalate | Agent Script | Follows deterministically from the checks above |
-| What context goes into the escalation case | LLM | Summarisation |
+| Whether ProcessRefund runs at all | Agent Script | The refund action must be unreachable unless every check passes |
+| Whether a cancellation is processed automatically | Agent Script, always no | The policy allows no exception |
+| The summary text written into the escalation case | LLM | Summarisation |
+
+Note (Phase 3 scope decision, deliberate): the "whether the requester owns the order" row is not implemented in the Phase 3 gate for this dev environment. There is no authenticated customer in an `sf agent preview` session, so any `requester_email` the gate compared against `Order__c.CustomerEmail__c` would be invented, and the check would prove nothing - it would always pass or always fail by construction, not by fact. The other four Agent Script rows run against real seeded data and are sufficient for this phase. In production, ownership would be verified against the authenticated session's identity (for example a linked variable sourced from the Messaging session's end-user record), not a value the agent or the harness supplies itself.
 
 TODO: add rows as you build. If a row is hard to classify, that is the interesting part — write down why.
 
