@@ -120,6 +120,19 @@ subagent ReturnsRefunds:
     description: "Checks return-window eligibility and escalates return requests to a human."
     reasoning:
         instructions: ->
+            if @variables.order_id == "":
+                run @actions.check_return_window
+                    with orderNumber = @system_variables.user_input
+                    set @variables.order_id = @outputs.orderId
+                    set @variables.within_window = @outputs.insideWindow
+                    set @variables.order_item_id = @outputs.orderItemId
+                    set @variables.line_total = @outputs.lineTotal
+                    set @variables.item_returnable = @outputs.isReturnable
+                    set @variables.return_reason = @outputs.reason
+
+                    run @actions.get_order_items
+                        with orderId = @variables.order_id
+
             if @variables.order_id is not None and @variables.order_id != "":
                 set @variables.amount_ok = @variables.line_total <= 500
                 set @variables.reason_qualifies = (@variables.return_reason == "Damaged" or @variables.return_reason == "Wrong item")
