@@ -28,6 +28,29 @@ variables:
         source: @MessagingSession.EndUserLanguage
         description: "This variable may also be referred to as MessagingSession EndUserLanguage"
 
+    order_id: mutable string = ""
+        description: "The Salesforce record Id of the order currently being checked in Returns and Refunds. Set only from Check Return Window's output - never guessed."
+    order_item_id: mutable string = ""
+        description: "The Salesforce record Id of the specific line item being checked, verified by Check Return Window to belong to order_id."
+    line_total: mutable number = 0
+        description: "The line total of order_item_id, from Check Return Window. This is the amount used for the refund - never a re-typed or re-estimated value."
+    within_window: mutable boolean = False
+        description: "True if the order was delivered within the policy return window, from Check Return Window."
+    item_returnable: mutable boolean = False
+        description: "True if order_item_id is marked returnable, from Check Return Window."
+    return_reason: mutable string = ""
+        description: "The customer-stated return reason: Damaged, Wrong item, Not as described, or Changed mind."
+    is_cancellation: mutable boolean = False
+        description: "True if the customer is asking to cancel an order rather than return a delivered item. Set as soon as this is known from the conversation."
+    amount_ok: mutable boolean = False
+        description: "True if line_total is 500 or less. Computed deterministically in ReturnsRefunds - never set directly."
+    reason_qualifies: mutable boolean = False
+        description: "True if return_reason is Damaged or Wrong item. Computed deterministically in ReturnsRefunds - never set directly."
+    must_escalate: mutable boolean = False
+        description: "True if any Phase 3 policy check fails, or this is a cancellation. Gates Create Escalation Case. Computed deterministically in ReturnsRefunds - never set directly."
+    refund_approved: mutable boolean = False
+        description: "True only when every Phase 3 policy check passes and this is not a cancellation. Gates Process Refund - it must be unreachable otherwise. Computed deterministically in ReturnsRefunds - never set directly."
+
 language:
     default_locale: "en_US"
     additional_locales: ""
@@ -97,29 +120,66 @@ subagent ReturnsRefunds:
     description: "Checks return-window eligibility and escalates return requests to a human."
     reasoning:
         instructions: ->
+            if @variables.order_id is not None and @variables.order_id != "":
+                set @variables.amount_ok = @variables.line_total <= 500
+                set @variables.reason_qualifies = (@variables.return_reason == "Damaged" or @variables.return_reason == "Wrong item")
+                set @variables.must_escalate = @variables.within_window == False or @variables.amount_ok == False or @variables.item_returnable == False or @variables.reason_qualifies == False or @variables.is_cancellation == True
+                set @variables.refund_approved = @variables.within_window == True and @variables.amount_ok == True and @variables.item_returnable == True and @variables.reason_qualifies == True and @variables.is_cancellation == False
+
             | This subagent handles returns, refunds, order cancellations, and questions about return and refund policy.
-              It gathers facts first: whether the order exists, when it was delivered, and what the customer is asking for.
-              It does not announce a refund decision on its own.
-              Cancellation requests are not processed automatically; gather the details and escalate them for a person to handle, and do not check the return window for an order that has not been delivered.
+              It gathers facts first: the order, the specific line item, the customer-stated return reason, and whether this is a cancellation rather than a return.
+              Call {!@actions.check_return_window} once you know the order. Once you see the order's line items from {!@actions.get_order_items}, call {!@actions.check_return_window} again with the specific item Id, and pass the return reason as soon as the customer has stated it.
+              Use {!@actions.set_return_context} to record whether this is a cancellation as soon as that is known, if it is not already clear from what the customer asked for.
+              Every eligibility decision - the return window, the refund amount, whether the item is returnable, whether the reason qualifies, and whether to escalate - is computed deterministically, not by you. Do not announce a refund decision yourself; only report what {!@actions.process_refund} or {!@actions.create_escalation_case} actually did after you call it.
+              Cancellation requests are never processed automatically; gather the order details and escalate them for a person to handle regardless of order status or amount, and do not check the return window for an order that has not been delivered.
               If a customer asks a policy question without naming an order, answer the policy question rather than asking for an order number.
         actions:
             check_return_window: @actions.check_return_window
-                description: "Reports whether an order is inside the policy return window, and how many days since delivery. Does not approve, deny or process any refund."
-                with orderId = ...
+                description: "Reports whether an order is inside the policy return window. Pass orderItemId once you know which line item the customer means, to also get its verified line total and returnable flag. Pass reason once the customer has stated it."
+                with orderId = @variables.order_id
                 with orderNumber = ...
+                with orderItemId = ...
+                with reason = ...
+                set @variables.order_id = @outputs.orderId
+                set @variables.within_window = @outputs.insideWindow
+                set @variables.order_item_id = @outputs.orderItemId
+                set @variables.line_total = @outputs.lineTotal
+                set @variables.item_returnable = @outputs.isReturnable
+                set @variables.return_reason = @outputs.reason
+
+                run @actions.get_order_items
+                    with orderId = @variables.order_id
+
+            get_order_items: @actions.get_order_items
+                description: "Lists an order's line items - Id, product name, line total, and whether each is marked returnable - so you can identify which specific item the customer means. Runs automatically after Check Return Window; call it directly only if you need a fresh list without re-checking the window."
+                with orderId = @variables.order_id
+
+            set_return_context: @utils.setVariables
+                description: "Records whether this is a cancellation request rather than a return, as soon as that becomes known from the conversation."
+                with is_cancellation = ...
+
             create_escalation_case: @actions.create_escalation_case
+                available when @variables.must_escalate == True
                 description: "Creates a case for a human to handle and, if a return request Id is supplied, marks that return request Escalated and links it to the case."
                 with orderId = ...
                 with reason = ...
                 with contextSummary = ...
                 with returnRequestId = ...
 
+            process_refund: @actions.process_refund
+                available when @variables.refund_approved == True
+                description: "Approves and processes the refund, once every Phase 3 policy check has passed. Uses the verified order, item and amount - never a value you re-typed or re-estimated."
+                with orderId = @variables.order_id
+                with orderItemId = @variables.order_item_id
+                with amount = @variables.line_total
+                with reason = @variables.return_reason
+
 
 
     actions:
         check_return_window:
             target: "apex://CheckReturnWindow"
-            description: "Reports whether an order is inside the policy return window, and how many days since delivery. Fact-only - does not decide anything about refunds."
+            description: "Reports whether an order is inside the policy return window, and how many days since delivery. Optionally also reports a specific line item's verified total and returnable flag, and echoes back a return reason. Fact-only - does not decide anything about refunds."
             inputs:
                 orderId: string
                     description: "The Salesforce record Id of the order. Use when already known from a prior action result."
@@ -127,9 +187,17 @@ subagent ReturnsRefunds:
                 orderNumber: string
                     description: "The order number, for example ORD-0042. Use when the record Id is not known."
                     is_required: False
+                orderItemId: string
+                    description: "The Salesforce record Id of a specific line item on the order, for example from Get Order Items. Pass this once you know which item the customer means."
+                    is_required: False
+                reason: string
+                    description: "The customer-stated return reason, if known: Damaged, Wrong item, Not as described, or Changed mind."
+                    is_required: False
             outputs:
                 found: boolean
                     description: "True if a matching order was found, false otherwise."
+                orderId: string
+                    description: "The Salesforce record Id of the matched order. Blank if not found."
                 isDelivered: boolean
                     description: "True if the order has a delivered date recorded."
                 insideWindow: boolean
@@ -138,8 +206,61 @@ subagent ReturnsRefunds:
                     description: "Whole days between the delivered date and today. Blank if not delivered or not found."
                 windowDays: integer
                     description: "The return window length, in days, used for this check."
+                orderItemId: string
+                    description: "Echoes the input order item Id, but only once verified to belong to the matched order. Blank otherwise - never trust the input value directly."
+                lineTotal: number
+                    description: "The line total of the verified item. Blank if not verified."
+                isReturnable: boolean
+                    description: "Whether the verified item is marked returnable. Blank if not verified - never defaults to true."
+                reason: string
+                    description: "Echoes the input reason unchanged. Blank if not given."
                 message: string
                     description: "A short human-readable explanation."
+
+        get_order_items:
+            target: "apex://GetOrderItems"
+            description: "Lists the line items on an order: Id, product name, line total, and whether each is marked returnable."
+            inputs:
+                orderId: string
+                    description: "The Salesforce record Id of the order to list line items for."
+                    is_required: True
+            outputs:
+                found: boolean
+                    description: "True if a matching order was found, false otherwise."
+                orderItemId: list[string]
+                    description: "The Id of each line item, parallel to the other list outputs."
+                productName: list[string]
+                    description: "The product name of each line item, parallel to orderItemId."
+                lineTotal: list[number]
+                    description: "The line total of each line item, parallel to orderItemId."
+                isReturnable: list[boolean]
+                    description: "Whether each line item is marked returnable, parallel to orderItemId."
+                message: string
+                    description: "A short human-readable explanation."
+
+        process_refund:
+            target: "apex://ProcessRefund"
+            description: "Approves and processes a refund, creating an Approved ReturnRequest__c. Must be unreachable unless the Phase 3 Agent Script gate has passed - see docs/TRD.md section 3."
+            inputs:
+                orderId: string
+                    description: "The Salesforce record Id of the order."
+                    is_required: True
+                orderItemId: string
+                    description: "The Salesforce record Id of the specific line item being refunded. Leave blank only for a whole-order refund."
+                    is_required: False
+                amount: number
+                    description: "The refund amount. Must be the verified line total from Check Return Window."
+                    is_required: True
+                reason: string
+                    description: "The return reason. Must be one of the restricted picklist values: Damaged, Wrong item, Not as described, Changed mind."
+                    is_required: True
+            outputs:
+                success: boolean
+                    description: "True if the refund was processed."
+                returnRequestId: string
+                    description: "The Id of the created ReturnRequest__c. Blank if processing failed."
+                message: string
+                    description: "A short human-readable result or error explanation."
 
         create_escalation_case:
             target: "apex://CreateEscalationCase"
