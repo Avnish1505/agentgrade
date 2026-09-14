@@ -3,6 +3,11 @@
     <description>Read/create/edit on Order__c, OrderItem__c, ReturnRequest__c and Case. Metadata API deploys do not grant FLS automatically - assign this to any user or agent-running user that needs these records.</description>
     <fieldPermissions>
         <editable>true</editable>
+        <field>OrderItem__c.IsReturnable__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>OrderItem__c.LineTotal__c</field>
         <readable>true</readable>
     </fieldPermissions>

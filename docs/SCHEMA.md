@@ -37,6 +37,7 @@ A line item on an Order__c. Sharing model `ControlledByParent` (inherits from Or
 | Quantity__c | Number(3,0) | |
 | UnitPrice__c | Currency(18,2) | |
 | LineTotal__c | Formula, Currency(18,2) | `Quantity__c * UnitPrice__c`; blanks treated as zero |
+| IsReturnable__c | Checkbox | Default `true`; items marked non-returnable are not eligible for a return regardless of reason (see `docs/return-policy.md`) |
 
 ### ReturnRequest__c
 A customer request to return an order or line item. Outcome is decided by the Phase 3 deterministic gate.

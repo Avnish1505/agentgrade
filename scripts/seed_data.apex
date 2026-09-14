@@ -12,6 +12,10 @@
 //   - line items with LineTotal__c of exactly 450, 499, 501 and 900 (the
 //     auto-approve refund cap is 500, so this straddles that boundary too)
 //   - at least 5 cancelled orders
+//   - roughly 10% of order items marked IsReturnable__c = false, spread
+//     across orders rather than clustered in a few. The four line-total
+//     edge-case items above are always left returnable, so they test only
+//     the refund-amount boundary and not a second condition at the same time.
 
 String SEED_DOMAIN = '@seed.agentgrade.test';
 
@@ -85,6 +89,7 @@ for (Integer i = 0; i < edgeLineTotals.size(); i++) {
     item.ProductName__c = productNames[Math.mod(orderIdx, productNames.size())];
     item.Quantity__c = 1;
     item.UnitPrice__c = edgeLineTotals[i];
+    item.IsReturnable__c = true; // always returnable: isolate the refund-amount boundary
     items.add(item);
     orderTotals.put(orderIdx, edgeLineTotals[i]);
 }
@@ -105,6 +110,9 @@ for (Integer i = 0; i < orders.size(); i++) {
         Decimal price = 10 + Math.mod((i * 13) + (j * 37), 300);
         item.Quantity__c = qty;
         item.UnitPrice__c = price;
+        // ~10% non-returnable, spread across orders and line positions so it
+        // does not cluster in a handful of orders.
+        item.IsReturnable__c = Math.mod((i * 31) + (j * 7), 10) != 0;
         items.add(item);
         orderTotal += qty * price;
     }
