@@ -1,0 +1,14 @@
+{
+  "required" : [ "orderId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "orderId" : {
+      "title" : "Order Id",
+      "description" : "The Salesforce record Id of the order to list line items for.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

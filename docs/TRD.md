@@ -53,6 +53,10 @@ This table is the intellectual core of the project. Every row is a decision, and
 
 Note (Phase 3 scope decision, deliberate): the "whether the requester owns the order" row is not implemented in the Phase 3 gate for this dev environment. There is no authenticated customer in an `sf agent preview` session, so any `requester_email` the gate compared against `Order__c.CustomerEmail__c` would be invented, and the check would prove nothing - it would always pass or always fail by construction, not by fact. The other four Agent Script rows run against real seeded data and are sufficient for this phase. In production, ownership would be verified against the authenticated session's identity (for example a linked variable sourced from the Messaging session's end-user record), not a value the agent or the harness supplies itself.
 
+Note (Phase 3 implementation, org-verified): the table above is now implemented in `ReturnsRefunds`, not just designed. `check_return_window`'s tool call chains automatically into `get_order_items` (the LLM's one call triggers both, deterministically, per Agent Script's action-chaining mechanism). A deterministic `if`/`set` block at the top of `ReturnsRefunds`' `reasoning.instructions` - which runs unconditionally every time the subagent is processed, before any prompt reaches the LLM - computes `amount_ok`, `reason_qualifies`, `must_escalate` and `refund_approved` from values echoed back by `check_return_window` (`orderId`, the verified `orderItemId`, `lineTotal`, `isReturnable`, `insideWindow`, `reason`). `process_refund` (newly exposed here - previously unreachable from any subagent, see the note below) is gated `available when @variables.refund_approved == True`; `create_escalation_case` is gated `available when @variables.must_escalate == True`. `is_cancellation` is captured via `@utils.setVariables`, the documented mechanism for the LLM to record a fact directly into a variable with no backing Apex action. `sf agent validate authoring-bundle` passes clean against this. One real syntax lesson: the `must_escalate`/`refund_approved` boolean expressions must be a single line each - a first draft split them across multiple parenthesized lines and the validator rejected it with a long cascade of errors; Agent Script's own documented examples never split a conditional expression across lines, however long.
+
+Note (Phase 3, known and accepted limitation): the turn-1 extraction gap identified in the Phase 2 baseline (no documented Agent Script mechanism deterministically extracts a value already stated in the customer's own utterance into a variable, before any LLM tool call) is not solved by this gate and was not attempted - see section 10. The gate's deterministic checks only run once `order_id` etc. are populated, which still depends on the LLM choosing to call `check_return_window`. The Phase 3 gate test utterances are written to supply the order number, item and reason together for this reason, so the model has no missing information that would give it a reason to ask instead of calling the tool.
+
 TODO: add rows as you build. If a row is hard to classify, that is the interesting part — write down why.
 
 Note (Phase 2): ProcessRefund itself enforces none of the rows above — it is a plain executor that creates an Approved ReturnRequest__c for whatever amount it is given, with no cap, window or ownership check. That is deliberate: all three checks live only in the Phase 3 Agent Script gate, so Phase 5 can measure the agent's behavior with and without that gate in front of this action.
@@ -67,7 +71,7 @@ If grounding was cut, say so plainly here and describe the fallback. A documente
 
 ## 5. Actions
 
-For each action: inputs, outputs, errors, and limits. All five are `@InvocableMethod` Apex classes in `force-app/main/default/classes/`, bulk-safe (each does a fixed number of SOQL/DML statements regardless of list size), and designed to never throw for bad input — a malformed Id or a missing record produces a result with `success`/`found = false` and a message, not an exception.
+For each action: inputs, outputs, errors, and limits. All six are `@InvocableMethod` Apex classes in `force-app/main/default/classes/`, bulk-safe (each does a fixed number of SOQL/DML statements regardless of list size), and designed to never throw for bad input — a malformed Id or a missing record produces a result with `success`/`found = false` and a message, not an exception.
 
 ### GetOrderStatus
 - Type: Apex (`GetOrderStatus.getOrderStatus`)
@@ -78,10 +82,18 @@ For each action: inputs, outputs, errors, and limits. All five are `@InvocableMe
 
 ### CheckReturnWindow
 - Type: Apex (`CheckReturnWindow.checkReturnWindow`)
-- Inputs: `orderId` (String, optional), `orderNumber` (String, optional). Order Id takes precedence if both are given.
-- Outputs: `found`, `isDelivered`, `insideWindow`, `daysSinceDelivery`, `windowDays` (read from `RefundPolicy__mdt.Default.ReturnWindowDays__c`), `message`
-- Failure modes: neither input given, no matching order, or a malformed Id → `found = false`. Not yet delivered → `isDelivered = false`, `insideWindow` and `daysSinceDelivery` left blank. Missing `RefundPolicy__mdt.Default` record → `windowDays` and `insideWindow` left blank rather than guessing a default.
-- Fact-only: does not approve, deny, or process anything.
+- Inputs: `orderId` (String, optional), `orderNumber` (String, optional), `orderItemId` (String, optional, added Phase 3), `reason` (String, optional, added Phase 3). Order Id takes precedence over order number if both are given.
+- Outputs: `found`, `orderId` (added Phase 3 - echoes the resolved order's Id, so `GetOrderItems` has something to chain from when the order was looked up by number, not Id), `isDelivered`, `insideWindow`, `daysSinceDelivery`, `windowDays` (read from `RefundPolicy__mdt.Default.ReturnWindowDays__c`), `orderItemId` (added Phase 3 - echoes the input back, but only once verified to belong to the matched order), `lineTotal` (added Phase 3), `isReturnable` (added Phase 3), `reason` (added Phase 3 - echoes the input back unchanged, unvalidated), `message`
+- Failure modes: neither `orderId` nor `orderNumber` given, no matching order, or a malformed Id → `found = false`. Not yet delivered → `isDelivered = false`, `insideWindow` and `daysSinceDelivery` left blank. Missing `RefundPolicy__mdt.Default` record → `windowDays` and `insideWindow` left blank rather than guessing a default. `orderItemId` given but it doesn't exist, is malformed, or belongs to a *different* order than the one matched → `orderItemId`/`lineTotal`/`isReturnable` all left blank, never defaulted - a mismatched Id must never read as "returnable" (see `CheckReturnWindowTest.testItemBelongsToWrongOrder`).
+- Fact-only: does not approve, deny, or process anything. The Phase 3 additions (`orderItemId`/`reason` echoes) exist purely so the Agent Script gate can capture LLM-supplied values into variables via `set @variables.x = @outputs.y` - there is no documented way to capture an action *input*'s value into a variable directly, only an output's.
+
+### GetOrderItems
+- Type: Apex (`GetOrderItems.getOrderItems`) — added Phase 3
+- Inputs: `orderId` (String, required)
+- Outputs: `found` (Boolean), `orderItemId` (list[String]), `productName` (list[String]), `lineTotal` (list[Decimal]), `isReturnable` (list[Boolean]) — all four lists parallel, one entry per line item — `message`
+- Failure modes: blank/malformed `orderId`, or no matching order → `found = false`, all lists empty. Order found but has no line items → `found = true`, lists empty, message says so - not a failure.
+- Purpose: lets the LLM resolve a product the customer named (e.g. "the Gadget") to a specific `OrderItem__c` Id, since neither `GetOrderStatus` nor `CheckReturnWindow` exposes item-level data. A separate action rather than folding into `GetOrderStatus`, so the Phase 5 action-sequence check can see this step distinctly.
+- Chained automatically off `check_return_window` in the gate (see section 3) - the LLM does not need to call it directly in the common path, though it remains directly callable.
 
 ### ProcessRefund
 - Type: Apex (`ProcessRefund.processRefund`)
@@ -90,6 +102,7 @@ For each action: inputs, outputs, errors, and limits. All five are `@InvocableMe
 - Creates a `ReturnRequest__c` with `Outcome__c = 'Approved'` unconditionally.
 - Precondition: the Agent Script gate must have passed. This action must be unreachable otherwise - see the note in section 3.
 - Failure modes: malformed `orderId`/`orderItemId`, or a DML-level rejection (e.g. an invalid `reason` value) → `success = false` with the platform error message, per request, without failing the whole batch.
+- Phase 3 update: now wired into `ReturnsRefunds`, gated `available when @variables.refund_approved == True` - no longer unreachable from every subagent as it was through Phase 2 (section 2's "ProcessRefund is not wired to any subagent" is accordingly stale as of Phase 3; not updating section 2's prose here since only sections 3, 5 and 10 were in scope for this pass, but flagging it so it isn't silently wrong).
 
 ### CreateEscalationCase
 - Type: Apex (`CreateEscalationCase.createEscalationCase`)
@@ -150,3 +163,7 @@ TODO: record the actual limits you hit, with dates. Verify each against current 
 | LLM generations per hour | TODO | TODO |
 | Data Cloud data spaces | TODO | TODO |
 | Org inactivity before deletion | TODO | TODO |
+| `sf agent publish` from this CLI environment | Consistently times out (`ConnectTimeoutError` to raw IPs, not the org's normal API host) - a network egress restriction in this sandbox, not the org | Phase 2 and Phase 3 both - worked around by deploying `AiAuthoringBundle` metadata directly and committing/activating from the Builder UI instead |
+| Committing a locally-edited Agent Script file, from Builder UI, does not reliably pick up an externally-deployed `AiAuthoringBundle` | Observed 2026-09-14: three separate Builder "Commit" actions (creating BotVersions v1, v2, v3 in sequence) all committed byte-identical pre-gate content, none reflecting a CLI deploy of the gate made beforehand | Phase 3 - cost a full round of "confirm the gate is live" → discover it isn't → redeploy → re-verify before the gate test could run at all. The Builder tab appears to hold its own draft state, decoupled from `sf project deploy start --metadata AiAuthoringBundle:...`; closing and reopening the agent in Builder (loading fresh from the deployed source) before committing is the working fix, not confirmed as documented platform behavior |
+| Deleting a BotVersion in Builder also deletes its linked `AiAuthoringBundle` (and vice versa - the two are 1:1 by `<target>`) | Observed 2026-09-14: deleting `v2`/`v3` removed the `AgentGrade`/`AgentGrade_2` bundles along with them; the org auto-creates a numbered fallback bundle (e.g. `AgentGrade_1`) rather than leaving an already-published version with no editable source | Same Phase 3 incident. Also: redeploying `AiAuthoringBundle` metadata whose local `bundle-meta.xml` still declares a `<target>` pointing at a version that no longer exists (or is already claimed) fails with `duplicate value found: UniqueIndexFormula duplicates value on <name>` - remove the `<target>` element before redeploying an edited bundle; it gets written back by a publish/commit, not supplied by the deployer |
+| `sf project retrieve start --output-dir <dot-prefixed-path>` | Silently returns success with zero files extracted to disk (verified on both a known-good `ApexClass` and an `AiAuthoringBundle` - not specific to either) | Phase 3, while trying to verify org state in a scratch directory. A plain (non-dot-prefixed) directory name works correctly |

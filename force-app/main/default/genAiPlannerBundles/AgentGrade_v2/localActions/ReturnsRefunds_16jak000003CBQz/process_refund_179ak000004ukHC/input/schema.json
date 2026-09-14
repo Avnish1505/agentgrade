@@ -1,0 +1,35 @@
+{
+  "required" : [ "orderId", "amount", "reason" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "amount" : {
+      "title" : "Amount",
+      "description" : "The refund amount. Must be the verified line total from Check Return Window.",
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "orderId" : {
+      "title" : "Order Id",
+      "description" : "The Salesforce record Id of the order.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "orderItemId" : {
+      "title" : "Order Item Id",
+      "description" : "The Salesforce record Id of the specific line item being refunded. Leave blank only for a whole-order refund.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "reason" : {
+      "title" : "Reason",
+      "description" : "The return reason. Must be one of the restricted picklist values: Damaged, Wrong item, Not as described, Changed mind.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

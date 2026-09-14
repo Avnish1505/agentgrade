@@ -1,0 +1,35 @@
+{
+  "required" : [ "orderId", "reason", "contextSummary" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "contextSummary" : {
+      "title" : "Context Summary",
+      "description" : "A short summary of the conversation or situation for the human who picks up the case.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "orderId" : {
+      "title" : "Order Id",
+      "description" : "The Salesforce record Id of the order this escalation concerns.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "reason" : {
+      "title" : "Reason",
+      "description" : "Why this is being escalated to a human, in a few words. Becomes the case subject.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "returnRequestId" : {
+      "title" : "Return Request Id",
+      "description" : "The Id of an existing return request to mark Escalated and link to this case. Leave blank if not about a specific return request.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

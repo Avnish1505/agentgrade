@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BotVersion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>v2</fullName>
+    <articleAnswersGPTEnabled>false</articleAnswersGPTEnabled>
+    <botDialogs>
+        <botSteps>
+            <botMessages>
+                <message>Hi, I&apos;m here to help with your order or a return. What can I help you with?</message>
+                <messageIdentifier>7e6d58e2-be64-4577-9997-8b380727f54f</messageIdentifier>
+            </botMessages>
+            <stepIdentifier>114379f4-efc4-4029-aa10-d94a7cf44931</stepIdentifier>
+            <type>Message</type>
+        </botSteps>
+        <botSteps>
+            <stepIdentifier>50a3c52a-4de2-4e1c-846d-59361675a76a</stepIdentifier>
+            <type>Wait</type>
+        </botSteps>
+        <developerName>Welcome</developerName>
+        <isPlaceholderDialog>false</isPlaceholderDialog>
+        <label>Welcome</label>
+        <showInFooterMenu>false</showInFooterMenu>
+    </botDialogs>
+    <botDialogs>
+        <botSteps>
+            <botMessages>
+                <message>Sorry, it looks like something has gone wrong. Please try again.</message>
+                <messageIdentifier>ea90a934-7070-4c33-90a2-c0d6eca87747</messageIdentifier>
+            </botMessages>
+            <stepIdentifier>81f32272-b9e5-454e-aad9-24c2c3d5fc15</stepIdentifier>
+            <type>Message</type>
+        </botSteps>
+        <botSteps>
+            <stepIdentifier>b46f57f8-132e-4c62-bff7-b7c5e1a9e3d1</stepIdentifier>
+            <type>Wait</type>
+        </botSteps>
+        <developerName>Rich_Content_Error_Handling</developerName>
+        <isPlaceholderDialog>false</isPlaceholderDialog>
+        <label>Error Handler</label>
+        <showInFooterMenu>false</showInFooterMenu>
+    </botDialogs>
+    <botDialogs>
+        <botSteps>
+            <conversationSystemMessage>
+                <type>Transfer</type>
+            </conversationSystemMessage>
+            <stepIdentifier>b1ba0385-ad3f-4286-9b3c-faa82c4bfdfe</stepIdentifier>
+            <type>SystemMessage</type>
+        </botSteps>
+        <developerName>Transfer_To_Agent</developerName>
+        <isPlaceholderDialog>false</isPlaceholderDialog>
+        <label>Transfer To Agent</label>
+        <showInFooterMenu>false</showInFooterMenu>
+    </botDialogs>
+    <citationsEnabled>false</citationsEnabled>
+    <conversationDefinitionPlanners>
+        <genAiPlannerName>AgentGrade_v2</genAiPlannerName>
+    </conversationDefinitionPlanners>
+    <conversationSystemDialogs>
+        <dialog>Rich_Content_Error_Handling</dialog>
+        <type>ErrorHandling</type>
+    </conversationSystemDialogs>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <description>The Salesforce record Id of the specific line item being checked, verified by Check Return Window to belong to order_id.</description>
+        <developerName>order_item_id</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Order Item Id</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Number</dataType>
+        <description>The line total of order_item_id, from Check Return Window. This is the amount used for the refund - never a re-typed or re-estimated value.</description>
+        <developerName>line_total</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Line Total</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <description>The customer-stated return reason: Damaged, Wrong item, Not as described, or Changed mind.</description>
+        <developerName>return_reason</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Return Reason</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Boolean</dataType>
+        <description>Runtime condition evaluation for if statements</description>
+        <developerName>AgentScriptInternal_condition_1</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Runtime Condition 1</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Boolean</dataType>
+        <description>True if the order was delivered within the policy return window, from Check Return Window.</description>
+        <developerName>within_window</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Within Window</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <description>The next topic to be visited</description>
+        <developerName>AgentScriptInternal_next_topic</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Next Topic</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Boolean</dataType>
+        <description>True if return_reason is Damaged or Wrong item. Computed deterministically in ReturnsRefunds - never set directly.</description>
+        <developerName>reason_qualifies</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Reason Qualifies</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <description>The agent instructions</description>
+        <developerName>AgentScriptInternal_agent_instructions</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Agent Instructions</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Boolean</dataType>
+        <description>True if any Phase 3 policy check fails, or this is a cancellation. Gates Create Escalation Case. Computed deterministically in ReturnsRefunds - never set directly.</description>
+        <developerName>must_escalate</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Must Escalate</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Boolean</dataType>
+        <description>True only when every Phase 3 policy check passes and this is not a cancellation. Gates Process Refund - it must be unreachable otherwise. Computed deterministically in ReturnsRefunds - never set directly.</description>
+        <developerName>refund_approved</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Refund Approved</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Boolean</dataType>
+        <description>True if order_item_id is marked returnable, from Check Return Window.</description>
+        <developerName>item_returnable</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Item Returnable</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <description>The Salesforce record Id of the order currently being checked in Returns and Refunds. Set only from Check Return Window&apos;s output - never guessed.</description>
+        <developerName>order_id</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Order Id</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Boolean</dataType>
+        <description>True if the customer is asking to cancel an order rather than return a delivered item. Set as soon as this is known from the conversation.</description>
+        <developerName>is_cancellation</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Is Cancellation</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Boolean</dataType>
+        <description>True if line_total is 500 or less. Computed deterministically in ReturnsRefunds - never set directly.</description>
+        <developerName>amount_ok</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Amount Ok</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <copilotPrimaryLanguage>en_US</copilotPrimaryLanguage>
+    <defaultStdObjForContactIdFltrEnabled>false</defaultStdObjForContactIdFltrEnabled>
+    <entryDialog>Welcome</entryDialog>
+    <intentDisambiguationEnabled>false</intentDisambiguationEnabled>
+    <intentV3Enabled>false</intentV3Enabled>
+    <isScriptCompatibleAgent>true</isScriptCompatibleAgent>
+    <knowledgeActionEnabled>false</knowledgeActionEnabled>
+    <knowledgeFallbackEnabled>false</knowledgeFallbackEnabled>
+    <smallTalkEnabled>false</smallTalkEnabled>
+    <staticPromptsEnabled>false</staticPromptsEnabled>
+    <stopRecPrompts>false</stopRecPrompts>
+    <stopWelcomePrompts>false</stopWelcomePrompts>
+    <surfacesEnabled>false</surfacesEnabled>
+    <toneType>Casual</toneType>
+</BotVersion>

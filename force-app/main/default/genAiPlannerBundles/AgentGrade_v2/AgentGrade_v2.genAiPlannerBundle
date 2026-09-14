@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlannerBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Handles B2B order status, returns and refund inquiries.</description>
+    <localTopicLinks>
+        <genAiPluginName>Fallback_16jak000003CBQz</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>OrderStatus_16jak000003CBQz</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>ReturnsRefunds_16jak000003CBQz</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>agent_router_16jak000003CBQz</genAiPluginName>
+    </localTopicLinks>
+    <localTopics>
+        <fullName>ReturnsRefunds_16jak000003CBQz</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Checks return-window eligibility and escalates return requests to a human.</description>
+        <developerName>ReturnsRefunds_16jak000003CBQz</developerName>
+        <genAiPluginInstructions>
+            <description>You are AgentGrade, a B2B order and returns support agent. Be clear, factual, and concise.</description>
+            <developerName>instruction0_179ak000004ukHC</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179ak000004ukHC</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>check_return_window_179ak000004ukHC</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>get_order_items_179ak000004ukHC</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>create_escalation_case_179ak000004ukHC</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>process_refund_179ak000004ukHC</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>process_refund_179ak000004ukHC</fullName>
+            <description>Approves and processes a refund, creating an Approved ReturnRequest__c. Must be unreachable unless the Phase 3 Agent Script gate has passed - see docs/TRD.md section 3.</description>
+            <developerName>process_refund_179ak000004ukHC</developerName>
+            <invocationTarget>ProcessRefund</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>process_refund</localDeveloperName>
+            <masterLabel>Process Refund</masterLabel>
+        </localActions>
+        <localActions>
+            <fullName>create_escalation_case_179ak000004ukHC</fullName>
+            <description>Creates a case for a human to handle and, if a return request Id is supplied, marks that return request Escalated and links it to the case.</description>
+            <developerName>create_escalation_case_179ak000004ukHC</developerName>
+            <invocationTarget>CreateEscalationCase</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>create_escalation_case</localDeveloperName>
+            <masterLabel>Create Escalation Case</masterLabel>
+        </localActions>
+        <localActions>
+            <fullName>check_return_window_179ak000004ukHC</fullName>
+            <description>Reports whether an order is inside the policy return window, and how many days since delivery. Optionally also reports a specific line item&apos;s verified total and returnable flag, and echoes back a return reason. Fact-only - does not decide anything about refunds.</description>
+            <developerName>check_return_window_179ak000004ukHC</developerName>
+            <invocationTarget>CheckReturnWindow</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>check_return_window</localDeveloperName>
+            <masterLabel>Check Return Window</masterLabel>
+        </localActions>
+        <localActions>
+            <fullName>get_order_items_179ak000004ukHC</fullName>
+            <description>Lists the line items on an order: Id, product name, line total, and whether each is marked returnable.</description>
+            <developerName>get_order_items_179ak000004ukHC</developerName>
+            <invocationTarget>GetOrderItems</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>get_order_items</localDeveloperName>
+            <masterLabel>Get Order Items</masterLabel>
+        </localActions>
+        <localDeveloperName>ReturnsRefunds</localDeveloperName>
+        <masterLabel>Returns and Refunds</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>agent_router_16jak000003CBQz</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Welcome the user and determine the appropriate subagent based on user input</description>
+        <developerName>agent_router_16jak000003CBQz</developerName>
+        <genAiPluginInstructions>
+            <description>You are AgentGrade, a B2B order and returns support agent. Be clear, factual, and concise.</description>
+            <developerName>instruction0_179ak000004ukHD</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179ak000004ukHD</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>agent_router</localDeveloperName>
+        <masterLabel>Agent Router</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>Fallback_16jak000003CBQz</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Records a user message the agent could not handle, for later human review.</description>
+        <developerName>Fallback_16jak000003CBQz</developerName>
+        <genAiPluginInstructions>
+            <description>You are AgentGrade, a B2B order and returns support agent. Be clear, factual, and concise.</description>
+            <developerName>instruction0_179ak000004ukHB</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179ak000004ukHB</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>log_unhandled_179ak000004ukHB</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>log_unhandled_179ak000004ukHB</fullName>
+            <description>Records a case for a user message the agent could not route or act on, for later human review.</description>
+            <developerName>log_unhandled_179ak000004ukHB</developerName>
+            <invocationTarget>LogUnhandled</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>log_unhandled</localDeveloperName>
+            <masterLabel>Log Unhandled</masterLabel>
+        </localActions>
+        <localDeveloperName>Fallback</localDeveloperName>
+        <masterLabel>Fallback</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>OrderStatus_16jak000003CBQz</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Looks up order status, dates and total for the customer.</description>
+        <developerName>OrderStatus_16jak000003CBQz</developerName>
+        <genAiPluginInstructions>
+            <description>You are AgentGrade, a B2B order and returns support agent. Be clear, factual, and concise.</description>
+            <developerName>instruction0_179ak000004ukHE</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179ak000004ukHE</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>get_order_status_179ak000004ukHE</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>get_order_status_179ak000004ukHE</fullName>
+            <description>Looks up one order by order number or customer email and returns its status, dates and total.</description>
+            <developerName>get_order_status_179ak000004ukHE</developerName>
+            <invocationTarget>GetOrderStatus</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>get_order_status</localDeveloperName>
+            <masterLabel>Get Order Status</masterLabel>
+        </localActions>
+        <localDeveloperName>OrderStatus</localDeveloperName>
+        <masterLabel>Order Status</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <masterLabel>AgentGrade</masterLabel>
+    <plannerType>Atlas__ConcurrentMultiAgentOrchestration</plannerType>
+</GenAiPlannerBundle>

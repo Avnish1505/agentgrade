@@ -1,0 +1,14 @@
+{
+  "required" : [ "utterance" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "utterance" : {
+      "title" : "Utterance",
+      "description" : "The user message the agent could not handle, verbatim.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}
