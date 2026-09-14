@@ -295,4 +295,47 @@ private class CheckReturnWindowTest {
             System.assertEquals(false, r.isReturnable);
         }
     }
+
+    @isTest
+    static void testOrderNumberPlainAsBeforeStillExactMatches() {
+        // Existing-contract test: a plain, clean order number behaves exactly
+        // as it did before the regex fallback was added.
+        Order__c o = [SELECT Id, Name FROM Order__c WHERE CustomerEmail__c = 'inside@example.com'];
+        CheckReturnWindow.Request req = new CheckReturnWindow.Request();
+        req.orderNumber = o.Name;
+
+        Test.startTest();
+        List<CheckReturnWindow.Result> results = CheckReturnWindow.checkReturnWindow(new List<CheckReturnWindow.Request>{ req });
+        Test.stopTest();
+
+        System.assertEquals(true, results[0].found);
+        System.assertEquals(o.Id, results[0].orderId);
+        System.assertEquals(true, results[0].insideWindow);
+    }
+
+    @isTest
+    static void testSentenceWithNoOrderNumber() {
+        CheckReturnWindow.Request req = new CheckReturnWindow.Request();
+        req.orderNumber = 'I want to return an item but I do not have my order number handy.';
+
+        Test.startTest();
+        List<CheckReturnWindow.Result> results = CheckReturnWindow.checkReturnWindow(new List<CheckReturnWindow.Request>{ req });
+        Test.stopTest();
+
+        System.assertEquals(false, results[0].found);
+        System.assert(String.isNotBlank(results[0].message));
+    }
+
+    @isTest
+    static void testSentenceWithWellFormedButNonexistentOrderNumber() {
+        CheckReturnWindow.Request req = new CheckReturnWindow.Request();
+        req.orderNumber = 'Please check on order ORD-9999 for me.';
+
+        Test.startTest();
+        List<CheckReturnWindow.Result> results = CheckReturnWindow.checkReturnWindow(new List<CheckReturnWindow.Request>{ req });
+        Test.stopTest();
+
+        System.assertEquals(false, results[0].found);
+        System.assert(String.isNotBlank(results[0].message));
+    }
 }

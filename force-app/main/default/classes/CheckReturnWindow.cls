@@ -8,8 +8,28 @@
  * in the same call, rather than trusting an unverified value from elsewhere.
  * This is a factual check only - it does not decide anything about refunds,
  * and it never throws for a missing order or a malformed Id.
+ *
+ * orderNumber also accepts a raw sentence containing an order number (for
+ * example the customer's full utterance) - if the value doesn't match an
+ * order exactly, an ORD-#### substring is extracted from it and the lookup
+ * is retried with that. This lets a deterministic caller pass
+ * @system_variables.user_input directly. The existing contract is
+ * unchanged for every caller that already passes a clean order number:
+ * the exact match is always tried first, and a clean-but-nonexistent order
+ * number extracts to itself, so the result is identical to before.
  */
 public with sharing class CheckReturnWindow {
+
+    private static final Pattern ORDER_NUMBER_PATTERN = Pattern.compile('ORD-\\d{4}');
+
+    // Returns the first ORD-#### substring found in text, or null if none.
+    private static String extractOrderNumber(String text) {
+        if (String.isBlank(text)) {
+            return null;
+        }
+        Matcher m = ORDER_NUMBER_PATTERN.matcher(text);
+        return m.find() ? m.group() : null;
+    }
 
     public class Request {
         @InvocableVariable(label='Order Id' description='The Salesforce record Id of the order. Use this when you already have it from a prior action result; it is the more precise lookup.' required=false)
@@ -103,6 +123,28 @@ public with sharing class CheckReturnWindow {
             }
         }
 
+        // Second pass: for any raw orderNumber that didn't match exactly,
+        // try extracting an ORD-#### substring from it and look that up too.
+        // Kept as a separate batched query (not per-request) to stay bulk-safe.
+        Set<String> extractedCandidates = new Set<String>();
+        for (Request req : requests) {
+            String raw = req.orderNumber != null ? req.orderNumber.trim() : null;
+            if (String.isBlank(raw) || byOrderNumber.containsKey(raw)) {
+                continue;
+            }
+            String extracted = extractOrderNumber(raw);
+            if (extracted != null && extracted != raw) {
+                extractedCandidates.add(extracted);
+            }
+        }
+
+        Map<String, Order__c> byExtractedOrderNumber = new Map<String, Order__c>();
+        if (!extractedCandidates.isEmpty()) {
+            for (Order__c o : [SELECT Id, Name, DeliveredDate__c FROM Order__c WHERE Name IN :extractedCandidates]) {
+                byExtractedOrderNumber.put(o.Name, o);
+            }
+        }
+
         Map<Id, OrderItem__c> itemsById = new Map<Id, OrderItem__c>();
         if (!validItemIds.isEmpty()) {
             for (OrderItem__c item : [
@@ -116,7 +158,7 @@ public with sharing class CheckReturnWindow {
 
         List<Result> results = new List<Result>();
         for (Request req : requests) {
-            results.add(buildResult(req, byId, byOrderNumber, itemsById, windowDays));
+            results.add(buildResult(req, byId, byOrderNumber, byExtractedOrderNumber, itemsById, windowDays));
         }
         return results;
     }
@@ -134,7 +176,7 @@ public with sharing class CheckReturnWindow {
         return Integer.valueOf(policies[0].ReturnWindowDays__c);
     }
 
-    private static Result buildResult(Request req, Map<Id, Order__c> byId, Map<String, Order__c> byOrderNumber, Map<Id, OrderItem__c> itemsById, Integer windowDays) {
+    private static Result buildResult(Request req, Map<Id, Order__c> byId, Map<String, Order__c> byOrderNumber, Map<String, Order__c> byExtractedOrderNumber, Map<Id, OrderItem__c> itemsById, Integer windowDays) {
         Result res = new Result();
         res.windowDays = windowDays;
         res.reason = String.isNotBlank(req.reason) ? req.reason.trim() : null;
@@ -157,6 +199,12 @@ public with sharing class CheckReturnWindow {
             }
         } else {
             o = byOrderNumber.get(orderNumber);
+            if (o == null) {
+                String extracted = extractOrderNumber(orderNumber);
+                if (extracted != null) {
+                    o = byExtractedOrderNumber.get(extracted);
+                }
+            }
         }
 
         if (o == null) {
