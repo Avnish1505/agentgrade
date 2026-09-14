@@ -1,12 +1,13 @@
 /**
  * Agentforce action: reports whether an order is inside the policy return
  * window, and optionally a specific line item's total and returnable flag.
- * Reads RefundPolicy__mdt.Default for the window length. Also echoes back an
- * optional customer-stated return reason unchanged, purely so a caller can
- * capture it into a variable in the same call - CheckReturnWindow does not
- * validate or interpret it. This is a factual check only - it does not
- * decide anything about refunds, and it never throws for a missing order or
- * a malformed Id.
+ * Reads RefundPolicy__mdt.Default for the window length. Echoes back the
+ * resolved order Id, the verified order item Id (only once confirmed to
+ * belong to that order), and an optional customer-stated return reason
+ * unchanged - purely so a caller can capture verified values into variables
+ * in the same call, rather than trusting an unverified value from elsewhere.
+ * This is a factual check only - it does not decide anything about refunds,
+ * and it never throws for a missing order or a malformed Id.
  */
 public with sharing class CheckReturnWindow {
 
@@ -42,6 +43,9 @@ public with sharing class CheckReturnWindow {
 
         @InvocableVariable(label='Window Days' description='The return window length, in days, used for this check (from RefundPolicy__mdt.Default). Blank if that policy record is missing.')
         public Integer windowDays;
+
+        @InvocableVariable(label='Order Item Id' description='Echoes the Order Item Id input back, but only once it has been verified to exist and belong to the matched order. Blank otherwise - use this, not the raw input, as the Id passed to Process Refund, so a refund can never target an unverified item.')
+        public String orderItemId;
 
         @InvocableVariable(label='Line Total' description='The line total of the item identified by Order Item Id. Blank if no Order Item Id was given, it does not exist, or it belongs to a different order.')
         public Decimal lineTotal;
@@ -206,6 +210,7 @@ public with sharing class CheckReturnWindow {
             return;
         }
 
+        res.orderItemId = item.Id;
         res.lineTotal = item.LineTotal__c;
         res.isReturnable = item.IsReturnable__c;
     }

@@ -151,6 +151,7 @@ private class CheckReturnWindowTest {
         Test.stopTest();
 
         System.assertEquals(true, results[0].found);
+        System.assertEquals(item.Id, results[0].orderItemId);
         System.assertEquals(250, results[0].lineTotal);
         System.assertEquals(true, results[0].isReturnable);
     }
@@ -169,6 +170,7 @@ private class CheckReturnWindowTest {
 
         // The order itself is still found; only the item-level fields are blank.
         System.assertEquals(true, results[0].found);
+        System.assertEquals(null, results[0].orderItemId);
         System.assertEquals(null, results[0].lineTotal);
         System.assertEquals(null, results[0].isReturnable);
     }
@@ -201,6 +203,7 @@ private class CheckReturnWindowTest {
         // this is the check that stops a mismatched Id from being trusted.
         System.assertEquals(true, results[0].found);
         System.assertEquals(true, results[0].isDelivered);
+        System.assertEquals(null, results[0].orderItemId);
         System.assertEquals(null, results[0].lineTotal);
         System.assertEquals(null, results[0].isReturnable);
     }
@@ -218,6 +221,7 @@ private class CheckReturnWindowTest {
         Test.stopTest();
 
         System.assertEquals(true, results[0].found);
+        System.assertEquals(null, results[0].orderItemId);
         System.assertEquals(null, results[0].lineTotal);
         System.assertEquals(null, results[0].isReturnable);
     }
@@ -281,9 +285,12 @@ private class CheckReturnWindowTest {
         List<CheckReturnWindow.Result> results = CheckReturnWindow.checkReturnWindow(requests);
         Test.stopTest();
 
+        Set<Id> expectedItemIds = new Map<Id, OrderItem__c>(bulkItems).keySet();
+
         System.assertEquals(50, results.size());
         for (CheckReturnWindow.Result r : results) {
             System.assertEquals(true, r.found);
+            System.assert(expectedItemIds.contains((Id) r.orderItemId));
             System.assertEquals(40, r.lineTotal);
             System.assertEquals(false, r.isReturnable);
         }
