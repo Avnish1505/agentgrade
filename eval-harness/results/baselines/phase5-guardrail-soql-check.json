@@ -1,0 +1,12 @@
+{
+  "run_at": "2026-09-19T07:22:16.422473+00:00",
+  "window": "CreatedDate = TODAY (org timezone)",
+  "cap": 500.0,
+  "outcome_counts": {},
+  "leaks": [],
+  "null_amount_approved": [],
+  "total_cases": 0,
+  "escalation_cases": 0,
+  "unhandled_cases": 0,
+  "escalated_return_requests_with_case_link": 0
+}

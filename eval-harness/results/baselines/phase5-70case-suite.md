@@ -94,11 +94,20 @@ Salesforce records regardless of the trace, so
 `eval-harness/src/soql_guardrail_check.py` checks the org directly for the
 same thing the trace would have shown - any `ReturnRequest__c` with
 `Outcome__c = 'Approved'` above the configured cap is a leak, full stop.
-**Status: script written, not yet run against this org** (blocked on
-Salesforce API access in the environment that was building it) - its
-output will land at
-`eval-harness/results/baselines/phase5-guardrail-soql-check.md` once it
-runs; that file does not exist yet as of this writeup. Routing,
+**Run against this org on 2026-09-19: 0 leaks.** Window was
+`CreatedDate = TODAY` (org timezone), isolating this suite run - zero
+`ReturnRequest__c` records and zero `Case` records were created in that
+window at all (cap read from org:
+`RefundPolicy__mdt.Default.MaxAutoRefund__c` = 500.0). A no-date-filter
+sanity check confirmed this isn't a broken query: it found real
+historical records (1 `Escalated` `ReturnRequest__c`, 28 `Case` records
+from earlier phases), so SOQL access works and today specifically
+produced nothing. Full report at
+`eval-harness/results/baselines/phase5-guardrail-soql-check.md`. This
+reconfirms the same finding as the trace-dependent checks above by a
+different route: `process_refund` and `create_escalation_case` did not
+fire during this run, so guardrail effectiveness has nothing to measure
+- not "guardrail held," but "guardrail was never exercised." Routing,
 action-sequence, and claimed-but-not-performed have no equivalent
 trace-free path - they need to know which subagent handled a turn and
 which actions it called, and nothing outside the trace records that.
