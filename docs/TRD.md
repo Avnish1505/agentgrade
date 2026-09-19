@@ -163,7 +163,7 @@ TODO: record the actual limits you hit, with dates. Verify each against current 
 | Limit | Value observed | Where it bit me |
 | --- | --- | --- |
 | LLM generations per hour | TODO | TODO |
-| Data Cloud data spaces | TODO | TODO |
+| Data Cloud data space for Einstein Audit | No data space selected/available - session trace endpoint returns 400 `No selected dataspace for Einstein Audit` unconditionally | Phase 5 - blocks routing/action-sequence/guardrail/claimed-but-not-performed measurement in the eval harness; full writeup below |
 | Org inactivity before deletion | TODO | TODO |
 | `sf agent publish` from this CLI environment | Consistently times out (`ConnectTimeoutError` to raw IPs, not the org's normal API host) - a network egress restriction in this sandbox, not the org | Phase 2 and Phase 3 both - worked around by deploying `AiAuthoringBundle` metadata directly and committing/activating from the Builder UI instead |
 | Committing a locally-edited Agent Script file, from Builder UI, does not reliably pick up an externally-deployed `AiAuthoringBundle` | Observed 2026-09-14: three separate Builder "Commit" actions (creating BotVersions v1, v2, v3 in sequence) all committed byte-identical pre-gate content, none reflecting a CLI deploy of the gate made beforehand | Phase 3 - cost a full round of "confirm the gate is live" → discover it isn't → redeploy → re-verify before the gate test could run at all. The Builder tab appears to hold its own draft state, decoupled from `sf project deploy start --metadata AiAuthoringBundle:...`; closing and reopening the agent in Builder (loading fresh from the deployed source) before committing is the working fix, not confirmed as documented platform behavior |
@@ -182,3 +182,17 @@ Evidence chain, all against the live, org-verified `AgentGrade` `AgentforceServi
 27 sessions total across the three variants (23 + 3 + 1), zero invocations of `check_return_window` from the deterministic path in any of them. One additional, unexplained data point: a compiled internal variable observed in the traces (`AgentScriptInternal_condition_1`) evaluated `False` identically in every case regardless of which guard was in place or whether one existed at all - further evidence the failure isn't a conditional-logic bug in the guard itself.
 
 **This is behavior observed in one org, on one agent type (`AgentforceServiceAgent`), on one Salesforce release, at one point in time - not a general claim about the Agent Script language or the Agentforce platform.** It may be a bug specific to this org or release, a documentation/implementation mismatch not yet fixed upstream, or a constraint specific to this `agent_type` that the documentation's general-purpose examples (written without specifying an agent type) don't surface. It has not been reported to Salesforce or checked against release notes. Full test-by-test evidence is in `eval-harness/results/baselines/phase3-gate.md`.
+
+Note (Phase 5, closed - the session trace endpoint has no Data Cloud data space to read from, in this org): the eval harness's `fetch_trace` targets the documented Agentforce Session Trace (OTel, Beta) endpoint, `GET /services/data/v66.0/einstein/audit/otel/{sessionId}`, needed to populate `routed_subagent` and `actions_invoked` for the routing, action-sequence, guardrail-effectiveness, and claimed-but-not-performed checks in `eval-harness/src/metrics.py`.
+
+Every call to this endpoint - three separate real sessions tested, each immediately after a real `send_message` turn, both before and after checking Setup > Einstein Audit, Analytics, and Monitoring Setup for Data Cloud / Agentforce Session Tracing configuration - returns the identical error:
+
+```json
+[{"errorCode": "BAD_REQUEST", "message": "No selected dataspace for Einstein Audit"}]
+```
+
+`400`, not `401`/`403` - the bearer token is accepted; this is Data Cloud dataspace provisioning, not an auth or path problem. Full raw captures (both the initial and the re-tested calls) are in `eval-harness/results/baselines/phase5-reachability.md`.
+
+Not chased further, per the same reasoning as the Phase 3 finding above: this session has already spent significant time on platform-side provisioning and reachability issues (the External Client App's opaque-vs-JWT token format, the Agent API's own earlier unreachability, and now this), and the trace endpoint being Beta with an explicit Data Cloud dependency makes it plausible this is an org-provisioning gap rather than something fixable from the harness or from Setup alone. **This is behavior observed in one org, at one point in time - not a general claim about Data Cloud, Einstein Audit, or the Agentforce platform.**
+
+Consequence, handled without hiding it: `eval-harness/src/metrics.py` reports routing accuracy, action-sequence accuracy, guardrail effectiveness, and claimed-but-not-performed as `{"status": "untestable", ...}` for every case in the 70-case suite (`eval-harness/results/baselines/phase5-70case-suite.md`) rather than as a misleading pass/fail rate computed against data that was never actually returned. Grounding faithfulness, which does not depend on the trace, was scored normally - and failed: 0 of 5 policy questions returned any citation.

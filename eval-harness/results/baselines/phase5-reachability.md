@@ -126,3 +126,19 @@ problem, but a wider-than-expected instance of the same one. See
 `eval-harness/src/agent_client.py` (`fetch_trace`) and `metrics.py` for how
 the harness handles this without crashing or reporting false pass/fail
 signals.
+
+## Re-test after Setup > Einstein Audit, Analytics, and Monitoring Setup check (2026-09-19, same day)
+
+Re-ran the identical probe (fresh session, real send_message, immediate
+`GET .../einstein/audit/otel/{sessionId}` with the same bearer token) after
+checking Data Cloud / Agentforce Session Tracing setup:
+
+`400`
+```json
+[{"errorCode": "BAD_REQUEST", "message": "No selected dataspace for Einstein Audit"}]
+```
+
+Identical error, byte-for-byte, on a new session id. Not chased further per
+instruction - see `docs/TRD.md` section 10 for the closing note. The 70-case
+suite was run as-is: grounding scored for real, routing/action-sequence/
+guardrail/claimed-but-not-performed all report `"status": "untestable"`.

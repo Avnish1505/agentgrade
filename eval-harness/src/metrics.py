@@ -125,6 +125,7 @@ class CaseResult:
             "actual_subagent": self.actual_subagent,
             "expected_actions": self.expected_actions,
             "actual_actions": self.actual_actions,
+            "response_text": self.response_text,
             "trace_available": self.trace_available,
             "routing_pass": self.routing_pass,
             "action_sequence_pass": self.action_sequence_pass,
