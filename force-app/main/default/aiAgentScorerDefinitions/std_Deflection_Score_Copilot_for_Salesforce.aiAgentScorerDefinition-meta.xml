@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AiAgentScorerDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <dataType>Number</dataType>
+    <inputScope>Session</inputScope>
+    <scorerType>Predefined</scorerType>
+    <scorerVersion>
+        <agentAssociation>
+            <agentApiName>Copilot_for_Salesforce</agentApiName>
+            <inputScope>Session</inputScope>
+            <isActive>true</isActive>
+            <samplingRate>1.0</samplingRate>
+        </agentAssociation>
+        <description>Indicates the degree to which the customer&apos;s inquiry was resolved during the session. Rated on a scale of 0–5, where 0 represents no resolution and 5 represents complete resolution.</description>
+        <engine>
+            <engineRef>agentforce_session_tracing__deflection</engineRef>
+            <engineType>PromptTemplate</engineType>
+        </engine>
+        <label>Deflection Score</label>
+        <outputEnumValue>
+            <description>No resolution: The agent provided no assistance, or the session ended immediately without meaningful interaction.</description>
+            <isFallback>false</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>0</value>
+        </outputEnumValue>
+        <outputEnumValue>
+            <description>Unsuccessful resolution: The agent provided irrelevant or incorrect information, entered a loop, or the session ended unexpectedly.</description>
+            <isFallback>false</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>1</value>
+        </outputEnumValue>
+        <outputEnumValue>
+            <description>Minimal progress: The agent acknowledged the customer&apos;s issue but provided little or no actionable guidance.</description>
+            <isFallback>false</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>2</value>
+        </outputEnumValue>
+        <outputEnumValue>
+            <description>Partial resolution: Some aspects of the request were addressed, but others were missed or the outcome remains inconclusive.</description>
+            <isFallback>false</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>3</value>
+        </outputEnumValue>
+        <outputEnumValue>
+            <description>Mostly resolved: The customer received clear answers and guidance, with only minor gaps remaining.</description>
+            <isFallback>false</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>4</value>
+        </outputEnumValue>
+        <outputEnumValue>
+            <description>Fully resolved: The customer&apos;s inquiry was completely addressed with clear answers and appropriate next steps.</description>
+            <isFallback>false</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>5</value>
+        </outputEnumValue>
+        <status>Available</status>
+        <versionNumber>1</versionNumber>
+    </scorerVersion>
+    <semanticType>Measurement</semanticType>
+</AiAgentScorerDefinition>

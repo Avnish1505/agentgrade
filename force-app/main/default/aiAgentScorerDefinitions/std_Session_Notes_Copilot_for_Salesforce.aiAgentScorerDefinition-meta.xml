@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AiAgentScorerDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <dataType>LightningType</dataType>
+    <inputScope>Session</inputScope>
+    <lightningType>lightning__multilineTextType</lightningType>
+    <scorerType>OpenEnded</scorerType>
+    <scorerVersion>
+        <agentAssociation>
+            <agentApiName>Copilot_for_Salesforce</agentApiName>
+            <inputScope>Session</inputScope>
+            <isActive>false</isActive>
+            <samplingRate>1.0</samplingRate>
+        </agentAssociation>
+        <description>Free-form reviewer notes captured manually for a session.</description>
+        <engine>
+            <engineType>Manual</engineType>
+        </engine>
+        <label>Session Notes</label>
+        <outputEnumValue>
+            <isFallback>true</isFallback>
+            <isSystemFallback>true</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>NOT_SET</value>
+        </outputEnumValue>
+        <status>Available</status>
+        <versionNumber>1</versionNumber>
+    </scorerVersion>
+    <semanticType>Dimension</semanticType>
+</AiAgentScorerDefinition>

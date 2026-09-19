@@ -1,0 +1,199 @@
+system:
+    instructions: "You are AgentGrade, a B2B order and returns support agent. Be clear, factual, and concise."
+
+    messages:
+        welcome: "Hi, I'm here to help with your order or a return. What can I help you with?"
+        error: "Sorry, it looks like something has gone wrong. Please try again."
+
+access:
+    default_agent_user: "agentgrade.runner.agent@00dak00001f6nyt.agentgrade.test"
+
+config:
+    developer_name: "AgentGrade"
+    agent_label: "AgentGrade"
+    agent_type: "AgentforceServiceAgent"
+    description: "Handles B2B order status, returns and refund inquiries."
+
+variables:
+    EndUserId: linked string
+        source: @MessagingSession.MessagingEndUserId
+        description: "This variable may also be referred to as MessagingEndUser Id"
+    RoutableId: linked string
+        source: @MessagingSession.Id
+        description: "This variable may also be referred to as MessagingSession Id"
+    ContactId: linked string
+        source: @MessagingEndUser.ContactId
+        description: "This variable may also be referred to as MessagingEndUser ContactId"
+    EndUserLanguage: linked string
+        source: @MessagingSession.EndUserLanguage
+        description: "This variable may also be referred to as MessagingSession EndUserLanguage"
+
+language:
+    default_locale: "en_US"
+    additional_locales: ""
+    all_additional_locales: False
+
+start_agent agent_router:
+    label: "Agent Router"
+    description: "Welcome the user and determine the appropriate subagent based on user input"
+    reasoning:
+        instructions: ->
+            | Route to OrderStatus when the customer asks about the status or delivery of an existing order, such as where it is, whether it has shipped, or when it arrived.
+              Route to ReturnsRefunds when the customer wants to send something back, get money back, cancel an order, or asks about return and refund policy.
+              Route to Fallback when the request is not about an order, a return, or a refund.
+              When a request is too vague to place, ask one short clarifying question before routing rather than guessing.
+        actions:
+            go_to_OrderStatus: @utils.transition to @subagent.OrderStatus
+            go_to_ReturnsRefunds: @utils.transition to @subagent.ReturnsRefunds
+            go_to_Fallback: @utils.transition to @subagent.Fallback
+
+subagent OrderStatus:
+    label: "Order Status"
+    description: "Looks up order status, dates and total for the customer."
+    reasoning:
+        instructions: ->
+            | This subagent handles questions about the status and delivery of an existing order.
+              It looks up the order and reports what it finds.
+              It does not handle returns, refunds, cancellations, or policy questions.
+              If the customer asks for any of those, hand off to ReturnsRefunds.
+              If no matching order is found, say so plainly and do not speculate about what may have happened.
+        actions:
+            get_order_status: @actions.get_order_status
+                description: "Looks up one order by order number or customer email and returns its status, dates and total. Does not check return eligibility."
+                with orderNumber = ...
+                with customerEmail = ...
+
+
+
+    actions:
+        get_order_status:
+            target: "apex://GetOrderStatus"
+            description: "Looks up one order by order number or customer email and returns its status, dates and total."
+            inputs:
+                orderNumber: string
+                    description: "The order number to look up, for example ORD-0042."
+                    is_required: False
+                customerEmail: string
+                    description: "The customer email to look up the most recent order for. Use only if the order number is not known."
+                    is_required: False
+            outputs:
+                found: boolean
+                    description: "True if a matching order was found, false otherwise."
+                orderNumber: string
+                    description: "The order number of the matched order. Blank if not found."
+                status: string
+                    description: "The order status: Pending, Shipped, Delivered or Cancelled. Blank if not found."
+                orderDate: date
+                    description: "The date the order was placed. Blank if not found."
+                deliveredDate: date
+                    description: "The date the order was delivered. Blank if not yet delivered or not found."
+                totalAmount: number
+                    description: "The order total. Blank if not found."
+                message: string
+                    description: "A short human-readable explanation, especially when the order was not found."
+
+subagent ReturnsRefunds:
+    label: "Returns and Refunds"
+    description: "Checks return-window eligibility and escalates return requests to a human."
+    reasoning:
+        instructions: ->
+            | This subagent handles returns, refunds, order cancellations, and questions about return and refund policy.
+              It gathers facts first: whether the order exists, when it was delivered, and what the customer is asking for.
+              It does not announce a refund decision on its own.
+              Cancellation requests are not processed automatically; gather the details and escalate them for a person to handle, and do not check the return window for an order that has not been delivered.
+              If a customer asks a policy question without naming an order, answer the policy question rather than asking for an order number.
+        actions:
+            check_return_window: @actions.check_return_window
+                description: "Reports whether an order is inside the policy return window, and how many days since delivery. Does not approve, deny or process any refund."
+                with orderId = ...
+                with orderNumber = ...
+            create_escalation_case: @actions.create_escalation_case
+                description: "Creates a case for a human to handle and, if a return request Id is supplied, marks that return request Escalated and links it to the case."
+                with orderId = ...
+                with reason = ...
+                with contextSummary = ...
+                with returnRequestId = ...
+
+
+
+    actions:
+        check_return_window:
+            target: "apex://CheckReturnWindow"
+            description: "Reports whether an order is inside the policy return window, and how many days since delivery. Fact-only - does not decide anything about refunds."
+            inputs:
+                orderId: string
+                    description: "The Salesforce record Id of the order. Use when already known from a prior action result."
+                    is_required: False
+                orderNumber: string
+                    description: "The order number, for example ORD-0042. Use when the record Id is not known."
+                    is_required: False
+            outputs:
+                found: boolean
+                    description: "True if a matching order was found, false otherwise."
+                isDelivered: boolean
+                    description: "True if the order has a delivered date recorded."
+                insideWindow: boolean
+                    description: "True if the order was delivered within the policy return window. Blank if not found, not yet delivered, or the policy record is missing."
+                daysSinceDelivery: integer
+                    description: "Whole days between the delivered date and today. Blank if not delivered or not found."
+                windowDays: integer
+                    description: "The return window length, in days, used for this check."
+                message: string
+                    description: "A short human-readable explanation."
+
+        create_escalation_case:
+            target: "apex://CreateEscalationCase"
+            description: "Creates a case for a human to handle and, if a return request Id is supplied, marks that return request Escalated and links it to the case."
+            inputs:
+                orderId: string
+                    description: "The Salesforce record Id of the order this escalation concerns."
+                    is_required: True
+                reason: string
+                    description: "Why this is being escalated to a human, in a few words. Becomes the case subject."
+                    is_required: True
+                contextSummary: string
+                    description: "A short summary of the conversation or situation for the human who picks up the case."
+                    is_required: True
+                returnRequestId: string
+                    description: "The Id of an existing return request to mark Escalated and link to this case. Leave blank if not about a specific return request."
+                    is_required: False
+            outputs:
+                success: boolean
+                    description: "True if the case was created."
+                caseId: string
+                    description: "The Id of the created case. Blank if creation failed."
+                caseNumber: string
+                    description: "The case number, for reference in conversation. Blank if creation failed."
+                message: string
+                    description: "A short human-readable result or error explanation."
+
+subagent Fallback:
+    label: "Fallback"
+    description: "Records a user message the agent could not handle, for later human review."
+    reasoning:
+        instructions: ->
+            | This subagent handles anything the other two do not cover, such as questions about products we do not sell, general enquiries, or messages unrelated to an order.
+              It never invents an answer and never guesses at account or order details.
+              It records the request and tells the customer that a person will follow up.
+        actions:
+            log_unhandled: @actions.log_unhandled
+                description: "Records a case for a user message the agent could not route or act on, for later human review."
+                with utterance = ...
+
+
+
+    actions:
+        log_unhandled:
+            target: "apex://LogUnhandled"
+            description: "Records a case for a user message the agent could not route or act on, for later human review."
+            inputs:
+                utterance: string
+                    description: "The user message the agent could not handle, verbatim."
+                    is_required: True
+            outputs:
+                success: boolean
+                    description: "True if the unhandled utterance was recorded."
+                caseId: string
+                    description: "The Id of the case created to record this. Blank if recording failed."
+                message: string
+                    description: "A short human-readable result or error explanation."

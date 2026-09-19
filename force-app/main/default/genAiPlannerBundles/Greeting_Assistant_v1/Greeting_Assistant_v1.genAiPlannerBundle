@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlannerBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>A friendly greeting assistant that warmly welcomes users and explains what it can help with.</description>
+    <localTopicLinks>
+        <genAiPluginName>Greeting_Assistant_16jak000003BTGH</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>agent_router_16jak000003BTGH</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>ambiguous_question_16jak000003BTGH</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>escalation_16jak000003BTGH</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>off_topic_16jak000003BTGH</genAiPluginName>
+    </localTopicLinks>
+    <localTopics>
+        <fullName>escalation_16jak000003BTGH</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Handles requests from users who want to transfer or escalate their conversation to a live human agent.</description>
+        <developerName>escalation_16jak000003BTGH</developerName>
+        <genAiPluginInstructions>
+            <description>You are a friendly greeting assistant. When a user starts a conversation, warmly welcome them and briefly explain what you can help with.
+You can help users with general questions, provide information, and guide them to the right resources.
+Always maintain a warm, helpful, and professional tone.</description>
+            <developerName>instruction0_179ak000004to6k</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179ak000004to6k</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>escalation</localDeveloperName>
+        <masterLabel>Escalation</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>agent_router_16jak000003BTGH</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Welcome the user and determine the appropriate subagent based on user input</description>
+        <developerName>agent_router_16jak000003BTGH</developerName>
+        <genAiPluginInstructions>
+            <description>You are a friendly greeting assistant. When a user starts a conversation, warmly welcome them and briefly explain what you can help with.
+You can help users with general questions, provide information, and guide them to the right resources.
+Always maintain a warm, helpful, and professional tone.
+
+{{state.AgentScriptInternal_agent_instructions}}</description>
+            <developerName>instruction0_179ak000004to6j</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179ak000004to6j</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>agent_router</localDeveloperName>
+        <masterLabel>Agent Router</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>ambiguous_question_16jak000003BTGH</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Redirect conversation to relevant topics when user request is too ambiguous</description>
+        <developerName>ambiguous_question_16jak000003BTGH</developerName>
+        <genAiPluginInstructions>
+            <description>You are a friendly greeting assistant. When a user starts a conversation, warmly welcome them and briefly explain what you can help with.
+You can help users with general questions, provide information, and guide them to the right resources.
+Always maintain a warm, helpful, and professional tone.</description>
+            <developerName>instruction0_179ak000004to6m</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179ak000004to6m</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>ambiguous_question</localDeveloperName>
+        <masterLabel>Ambiguous Question</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>Greeting_Assistant_16jak000003BTGH</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Greets the user and briefly explains what it can help with.</description>
+        <developerName>Greeting_Assistant_16jak000003BTGH</developerName>
+        <genAiPluginInstructions>
+            <description>You are a friendly greeting assistant. When a user starts a conversation, warmly welcome them and briefly explain what you can help with.
+You can help users with general questions, provide information, and guide them to the right resources.
+Always maintain a warm, helpful, and professional tone.</description>
+            <developerName>instruction0_179ak000004to6l</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179ak000004to6l</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>Greeting_Assistant</localDeveloperName>
+        <masterLabel>Greeting Assistant</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>off_topic_16jak000003BTGH</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Redirect conversation to relevant topics when user request goes off-topic</description>
+        <developerName>off_topic_16jak000003BTGH</developerName>
+        <genAiPluginInstructions>
+            <description>You are a friendly greeting assistant. When a user starts a conversation, warmly welcome them and briefly explain what you can help with.
+You can help users with general questions, provide information, and guide them to the right resources.
+Always maintain a warm, helpful, and professional tone.</description>
+            <developerName>instruction0_179ak000004to6n</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179ak000004to6n</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>off_topic</localDeveloperName>
+        <masterLabel>Off Topic</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <masterLabel>Greeting Assistant</masterLabel>
+    <plannerType>Atlas__ConcurrentMultiAgentOrchestration</plannerType>
+</GenAiPlannerBundle>

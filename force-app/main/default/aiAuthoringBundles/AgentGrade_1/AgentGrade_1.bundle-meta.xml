@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <AiAuthoringBundle xmlns="http://soap.sforce.com/2006/04/metadata">
     <bundleType>AGENT</bundleType>
-    <target>Greeting_Assistant.v1</target>
+    <target>AgentGrade.v1</target>
 </AiAuthoringBundle>

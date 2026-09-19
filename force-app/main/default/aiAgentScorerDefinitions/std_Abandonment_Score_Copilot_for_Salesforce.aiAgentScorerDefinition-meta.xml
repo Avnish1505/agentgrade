@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AiAgentScorerDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <dataType>Text</dataType>
+    <inputScope>Session</inputScope>
+    <scorerType>Predefined</scorerType>
+    <scorerVersion>
+        <agentAssociation>
+            <agentApiName>Copilot_for_Salesforce</agentApiName>
+            <inputScope>Session</inputScope>
+            <isActive>true</isActive>
+            <samplingRate>1.0</samplingRate>
+        </agentAssociation>
+        <description>Indicates whether the customer ended the session prematurely. &quot;True&quot; indicates the customer left without resolution or before completing a transfer. &quot;False&quot; indicates successful resolution or escalation. &quot;Unsure&quot; indicates ambiguous session closure.</description>
+        <engine>
+            <engineRef>agentforce_session_tracing__abandonment</engineRef>
+            <engineType>PromptTemplate</engineType>
+        </engine>
+        <label>Abandonment Score</label>
+        <outputEnumValue>
+            <description>The customer exited the session before their request was fulfilled or before an escalation to a service representative was completed.</description>
+            <isFallback>false</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>TRUE</value>
+        </outputEnumValue>
+        <outputEnumValue>
+            <description>The customer received a solution, a satisfactory reply, or was successfully transferred to a service representative.</description>
+            <isFallback>false</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>FALSE</value>
+        </outputEnumValue>
+        <outputEnumValue>
+            <description>The session ended abruptly or with ambiguous intent, making it unclear whether the customer&apos;s needs were met.</description>
+            <isFallback>true</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>Unsure</value>
+        </outputEnumValue>
+        <status>Available</status>
+        <versionNumber>1</versionNumber>
+    </scorerVersion>
+    <semanticType>Dimension</semanticType>
+</AiAgentScorerDefinition>

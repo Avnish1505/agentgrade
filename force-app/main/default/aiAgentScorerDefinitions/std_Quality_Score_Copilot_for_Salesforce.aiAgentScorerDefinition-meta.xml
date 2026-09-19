@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AiAgentScorerDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <dataType>Number</dataType>
+    <inputScope>Session</inputScope>
+    <scorerType>Predefined</scorerType>
+    <scorerVersion>
+        <agentAssociation>
+            <agentApiName>Copilot_for_Salesforce</agentApiName>
+            <inputScope>Intent</inputScope>
+            <isActive>true</isActive>
+            <samplingRate>1.0</samplingRate>
+        </agentAssociation>
+        <description>The quality score evaluates how well the AI Agent handled the customer interaction. Rated on a scale of 1–5, where 1 represents the lowest quality and 5 represents the highest.</description>
+        <engine>
+            <engineRef>agentforce_session_tracing__quality_score</engineRef>
+            <engineType>PromptTemplate</engineType>
+        </engine>
+        <label>Quality Score</label>
+        <outputEnumValue>
+            <description>Critical failure: The agent provided irrelevant, contradictory, or inappropriate responses.</description>
+            <isFallback>false</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>1</value>
+        </outputEnumValue>
+        <outputEnumValue>
+            <description>Ineffective: The agent failed to meet the user&apos;s intent, repeated context, or was untrustworthy.</description>
+            <isFallback>false</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>2</value>
+        </outputEnumValue>
+        <outputEnumValue>
+            <description>Partial: The agent had notable gaps in specificity or responsiveness, only partially addressing the user&apos;s needs.</description>
+            <isFallback>false</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>3</value>
+        </outputEnumValue>
+        <outputEnumValue>
+            <description>Mostly good: The agent was mostly effective with only minor conversational or style issues.</description>
+            <isFallback>false</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>4</value>
+        </outputEnumValue>
+        <outputEnumValue>
+            <description>Excellent: The agent fully addressed the user&apos;s intent with clear, consistent, and helpful responses.</description>
+            <isFallback>false</isFallback>
+            <isSystemFallback>false</isSystemFallback>
+            <outcomeType>NotApplicable</outcomeType>
+            <value>5</value>
+        </outputEnumValue>
+        <status>Available</status>
+        <versionNumber>1</versionNumber>
+    </scorerVersion>
+    <semanticType>Measurement</semanticType>
+</AiAgentScorerDefinition>
