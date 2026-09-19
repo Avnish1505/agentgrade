@@ -96,10 +96,10 @@ Hinglish: Yeh cheez tumhe baaki candidates se alag karegi. Numbers yahin se aaye
 
 Hinglish: Ab package karo. Senior banda 5 minute mein samajh jaana chahiye.
 
-- [ ] **6.1** Build the dashboard: routing confusion matrix, pass-rate cards, latency chart, drill-down into failures
-- [ ] **6.2** Finish all four documents
+- [x] **6.1** Build the dashboard: routing confusion matrix, pass-rate cards, latency chart, drill-down into failures — `dashboard/app.py` (Streamlit), screenshot at `docs/diagrams/dashboard-screenshot.png`
+- [x] **6.2** Finish all four documents — PRD, TRD, UX, SCHEMA all filled with grounded content; remaining TODOs (escalation wording, dashboard section already done) are honest gaps, not oversights, and say so inline
 - [ ] **6.3** Record the demo video, under five minutes, following the script in `docs/UX.md`
-- [ ] **6.4** Fill in the headline numbers table in `README.md`
+- [x] **6.4** Fill in the headline numbers table in `README.md`
 - [ ] **6.5** Ask someone to read the README cold and tell you what the project does. If they get it wrong, rewrite the README.
 
 **Exit check:** a stranger understands the project from the README in under five minutes.

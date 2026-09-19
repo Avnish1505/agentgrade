@@ -12,6 +12,11 @@ eval-harness/results/*.json
 eval-harness/results/*.md
 !eval-harness/results/.gitkeep
 !eval-harness/results/baselines/
+# latest.json is not raw per-run output (that stays gitignored above) - it's
+# a hand-curated snapshot assembled from the committed baseline reports,
+# specifically so the dashboard has something real to read without
+# re-running the suite. See its own "generated_note" field.
+!eval-harness/results/latest.json
 .sf/
 .sfdx/
 node_modules/

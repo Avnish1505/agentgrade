@@ -14,7 +14,9 @@ Diagram: `diagrams/architecture.mmd`
 
 The agent runs natively in a Salesforce Developer Edition org. The evaluation harness is an external Python service that calls the Agent API and reads session traces. Nothing about the agent is simulated.
 
-TODO: two paragraphs of prose explaining the flow.
+A customer message arrives at the agent through the Agent API (`start_session` / `send_message`, called both from `sf agent preview` during manual testing and from `eval-harness/src/agent_client.py` during a harness run). `agent_router` classifies intent and hands off to one of three subagents (section 2). Each subagent's `reasoning.instructions` runs an LLM pass augmented with whatever Apex actions it calls (section 5); `ReturnsRefunds` additionally runs the deterministic `if`/`set` gate described in section 3, intended to compute the refund/escalation decision from data before the LLM ever reasons over it. The agent's reply goes back over the same Agent API connection the caller used.
+
+Two paths consume that exchange afterward, and they are not equally reliable in this build. The intended path reads the session trace (Agentforce Session Trace / OTel, `GET /services/data/v66.0/einstein/audit/otel/{sessionId}`) to recover which subagent handled the turn and which actions it invoked — this is what `eval-harness/src/metrics.py` needs for routing, action-sequence, guardrail-effectiveness, and claimed-but-not-performed scoring, and it has never once returned real data in this org (section 10). The path that does work reads durable Salesforce records directly: `eval-harness/src/soql_guardrail_check.py` queries `ReturnRequest__c` and `Case` after a run completes, independent of the trace, for the one check (guardrail effectiveness) where the underlying records make that possible. Both paths feed into `results/latest.json` and the dashboard (section 8).
 
 ## 2. Agent topology
 
@@ -165,7 +167,13 @@ For each action: inputs, outputs, errors, and limits. All six are `@InvocableMet
 
 ## 6. Error handling and escalation
 
-TODO. Cover: action failure, ambiguous intent, guardrail violation, repeated failure in one session, and what the user sees in each case.
+**Action failure.** Every action in section 5 is designed to never throw for bad input — a malformed Id or missing record produces `found = false` / `success = false` with a message, not an exception. The one real DML-level failure mode observed is `ProcessRefund`/`CreateEscalationCase`/`LogUnhandled` rejecting an invalid picklist or oversized field; per-request, not batch-failing, so one bad case in a multi-case call doesn't take the others down with it.
+
+**Ambiguous intent.** Handled by `agent_router`'s own instructions (section 2): "when a request is too vague to place, ask one short clarifying question before routing rather than guessing." Observed directly in real sessions — Phase 2 baseline #9 and #12, Phase 3 Set A #9 and #12 all stayed at `topic_selector` and asked a clarifying question rather than committing to a subagent (`eval-harness/results/baselines/phase2-baseline.md`, `phase3-gate.md`).
+
+**Guardrail violation.** Designed behavior: the gate blocks `process_refund` (`available when @variables.refund_approved == True`) and routes to `create_escalation_case` instead. What the user is supposed to see is in `docs/UX.md` section 2. What actually happens: this path has never been exercised, because the gate's deterministic body never runs (section 10) — there is no real transcript of a guardrail violation being caught and escalated by this project's own logic, only of a separate, platform-level `Inappropriate_Content` classifier catching the two most explicit adversarial prompts before they reached the gate at all (`docs/UX.md` section 1, Phase 3 Set B #10-11).
+
+**Repeated failure in one session.** Not tested. Every session in Phase 2, Phase 3, and Phase 5 was a single fresh turn (`sf agent preview` or one `start_session`/`send_message`/`end_session` cycle per case) — no multi-turn conversation was run against this agent at any point, so there is no real data on how it behaves after two or three consecutive clarifying-question loops in the same session. If this project continues, that is a real gap, not a covered case being left undocumented.
 
 ## 7. Evaluation harness design
 
@@ -189,11 +197,17 @@ Note (Phase 2 baseline, org-verified): ungrounded factual assertions were observ
 
 ## 8. Observability
 
-TODO. Which session trace fields are consumed, how latency is derived, and what the dashboard shows.
+**Session trace fields consumed** (when the endpoint returns data, which it has not in this org — section 10): `routed_subagent` and `actions_invoked`, read by `eval-harness/src/agent_client.py`'s `extract_subagent`/`extract_actions`. Both functions raise `NotImplementedError` rather than guess a field mapping if a trace ever does come back with an unfamiliar shape — the mapping gets written from a real response, not from documentation, the same evidence-first approach as everything else in this project.
+
+**Latency** is derived per case in `agent_client.py`'s `run_case` (`time.perf_counter()` started before `start_session()`, stopped after `end_session()` in the `finally` block) — so the reported number is the full per-case round trip (session open, `send_message`, trace fetch attempt, session close), not isolated model-generation time. Aggregated in `metrics.py`'s `Aggregate.latency()` as p50 (median) and p95 (`values[int(len(values) * 0.95) - 1]` on the sorted list) over all non-errored cases. This is real, measured latency from the harness's own clock, not a value read from any API response field — no such field was found (see `AgentClient.__init__`'s comment on `messages_sent`). Worth keeping in mind before quoting 6349.2 ms as "agent response time" anywhere: it includes session-lifecycle overhead this project didn't attempt to separate out.
+
+**What the dashboard shows**: `dashboard/app.py` reads `eval-harness/results/latest.json` (the JSON `metrics.py`'s `run_eval.py` writes) and renders four sections per `docs/UX.md` section 3 — pass-rate/status cards for the four scored checks, a routing confusion matrix (empty when no trace data exists, not faked), the p50/p95 latency chart, and a failure drill-down table. Untestable checks render as untestable, not as a blank treated as zero or a zero treated as a pass — see `eval-harness/src/metrics.py`'s module docstring for why that distinction is load-bearing here.
 
 ## 9. Security and trust
 
-TODO. Agent user permissions, field level access, what data the agent can and cannot see, and where the Einstein Trust Layer sits in the flow.
+The agent runs as a dedicated Einstein Agent User (`agentgrade.runner.agent@...`, section-below notes cover the exact grants it needed), not as an admin or a shared integration user, scoped by `AgentGrade_Access` to read/write `Order__c`/`OrderItem__c`/`ReturnRequest__c` and read `Case` — nothing else in the org. It has no path to any object outside that permission set; there is no broader "what can't it see" list to write because the default is deny, not allow, and only these four objects were explicitly granted.
+
+Where the Einstein Trust Layer sits: this project never verified this directly (no test was designed to confirm masking, toxicity detection, or audit logging behavior specifically), so this is a gap, not a documented finding — flagging it honestly rather than describing a control this project didn't check. If this continues, confirming what the Trust Layer actually intercepts for this agent's traffic is a real TODO, not one to backfill with an assumption.
 
 Note (Phase 1, org-verified): Metadata API deploys do not grant field-level security — a freshly deployed custom field is invisible to SOQL and Apex ("No such column") for every profile until FLS is granted explicitly, confirmed via `FieldPermissions` for this org. `AgentGrade_Access` (`force-app/main/default/permissionsets/`) is the permission set that grants it for `Order__c`, `OrderItem__c`, `ReturnRequest__c`, and read on `Case`; assign it to any user or agent-running user that needs these records.
 
@@ -207,9 +221,9 @@ TODO: record the actual limits you hit, with dates. Verify each against current 
 
 | Limit | Value observed | Where it bit me |
 | --- | --- | --- |
-| LLM generations per hour | TODO | TODO |
+| LLM generations per hour | Not directly observed — the harness paces proactively off `config.yaml`'s configured `120/hour, 2/case` rather than running until Salesforce actually rate-limits it, so this project never hit a real 429 to confirm the true ceiling. The side finding in `eval-harness/results/baselines/phase5-70case-suite.md` questions whether 2/case is even the right assumption (measured `messages_sent` was 1/case) | Phase 5 — the ~55-minute pause after case 60 in the 70-case run was the *configured* limit pacing itself, not an observed Salesforce rejection |
 | Data Cloud data space for Einstein Audit | No data space selected/available - session trace endpoint returns 400 `No selected dataspace for Einstein Audit` unconditionally | Phase 5 - blocks routing/action-sequence/guardrail/claimed-but-not-performed measurement in the eval harness; full writeup below |
-| Org inactivity before deletion | TODO | TODO |
+| Org inactivity before deletion | Not tested — `ROADMAP.md` 0.4 adopted a 14-day login cadence as a safety margin, not a confirmed measured threshold. No org in this project has actually been left inactive to find the real cutoff, deliberately, since that risks losing the org | n/a — precautionary, not observed |
 | `sf agent publish` from this CLI environment | Consistently times out (`ConnectTimeoutError` to raw IPs, not the org's normal API host) - a network egress restriction in this sandbox, not the org | Phase 2 and Phase 3 both - worked around by deploying `AiAuthoringBundle` metadata directly and committing/activating from the Builder UI instead |
 | Committing a locally-edited Agent Script file, from Builder UI, does not reliably pick up an externally-deployed `AiAuthoringBundle` | Observed 2026-09-14: three separate Builder "Commit" actions (creating BotVersions v1, v2, v3 in sequence) all committed byte-identical pre-gate content, none reflecting a CLI deploy of the gate made beforehand | Phase 3 - cost a full round of "confirm the gate is live" → discover it isn't → redeploy → re-verify before the gate test could run at all. The Builder tab appears to hold its own draft state, decoupled from `sf project deploy start --metadata AiAuthoringBundle:...`; closing and reopening the agent in Builder (loading fresh from the deployed source) before committing is the working fix, not confirmed as documented platform behavior |
 | Deleting a BotVersion in Builder also deletes its linked `AiAuthoringBundle` (and vice versa - the two are 1:1 by `<target>`) | Observed 2026-09-14: deleting `v2`/`v3` removed the `AgentGrade`/`AgentGrade_2` bundles along with them; the org auto-creates a numbered fallback bundle (e.g. `AgentGrade_1`) rather than leaving an already-published version with no editable source | Same Phase 3 incident. Also: redeploying `AiAuthoringBundle` metadata whose local `bundle-meta.xml` still declares a `<target>` pointing at a version that no longer exists (or is already claimed) fails with `duplicate value found: UniqueIndexFormula duplicates value on <name>` - remove the `<target>` element before redeploying an edited bundle; it gets written back by a publish/commit, not supplied by the deployer |
