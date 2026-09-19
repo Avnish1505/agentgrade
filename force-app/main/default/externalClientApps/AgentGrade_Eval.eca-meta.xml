@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExternalClientApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>AgentGrade Eval Harness</label>
+    <description>Client credentials OAuth client used by the Phase 5 Python evaluation harness to call the Agent API against AgentGrade.</description>
+    <distributionState>Local</distributionState>
+    <contactEmail>avnishsingh150606@gmail.com</contactEmail>
+</ExternalClientApplication>

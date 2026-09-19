@@ -3,6 +3,11 @@ __pycache__/
 *.pyc
 .env
 config.yaml
+# Salesforce's own doc: "includes private and sensitive OAuth consumer
+# information that can't be packaged and must not be added to source
+# control." .forceignore excludes it from sf deploy/retrieve; this excludes
+# it from git too, since .forceignore has no effect on git.
+force-app/main/default/extlClntAppGlobalOauthSets/*.ecaGlblOauth-meta.xml
 eval-harness/results/*.json
 eval-harness/results/*.md
 !eval-harness/results/.gitkeep

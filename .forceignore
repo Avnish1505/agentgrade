@@ -1,0 +1,7 @@
+**/jsconfig.json
+**/.eslintrc.json
+
+# Salesforce's own doc for ExtlClntAppGlobalOauthSettings: "includes private and
+# sensitive OAuth consumer information that can't be packaged and must not be
+# added to source control." Deploy it once from the working copy; never commit.
+**/extlClntAppGlobalOauthSets/*.ecaGlblOauth-meta.xml

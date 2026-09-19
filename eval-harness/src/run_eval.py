@@ -86,17 +86,41 @@ def main() -> None:
             must_be_grounded=as_bool(row.get("must_be_grounded", "false")),
             is_adversarial=as_bool(row.get("is_adversarial", "false")),
             citations=turn.citations,
+            response_text=turn.response_text,
             latency_ms=turn.latency_ms,
+            trace_available=turn.trace_available,
             error=turn.error,
         )
         agg.results.append(result)
-        mark = "." if result.routing_pass and result.action_sequence_pass else "F"
+        # routing_pass/action_sequence_pass are None (untestable) without a
+        # trace - "?" makes that visible per-case rather than reading as a
+        # silent pass.
+        if result.error:
+            mark = "E"
+        elif result.routing_pass is None or result.action_sequence_pass is None:
+            mark = "?"
+        elif result.routing_pass and result.action_sequence_pass:
+            mark = "."
+        else:
+            mark = "F"
         print(f"  [{i}/{len(cases)}] {row['case_id']} {mark}")
 
     payload = {
         "run_label": label,
         "run_at": datetime.now(timezone.utc).isoformat(),
-        "generations_consumed_estimate": limiter.consumed,
+        # limiter.consumed is the rate limiter's own bookkeeping, driven by
+        # the *configured* generations_per_case - it paces requests but is
+        # not a measurement. messages_sent is the real, measured count of
+        # send_message calls that actually succeeded - the only per-case
+        # usage number this harness can back with evidence, since no API
+        # response or org entitlement object exposes an actual generation
+        # count (see agent_client.py AgentClient.__init__ for what was
+        # checked). If Salesforce's real per-turn cost differs, config.yaml
+        # generations_per_case needs comparing against Setup's own usage
+        # page around a run, not this counter.
+        "generations_per_case_configured": cfg["rate_limit"]["generations_per_case"],
+        "messages_sent_measured": client.messages_sent,
+        "rate_limiter_consumed": limiter.consumed,
         "summary": agg.summary(),
         "cases": [r.to_dict() for r in agg.results],
     }
@@ -108,12 +132,25 @@ def main() -> None:
     report_path = args.out.replace(".json", ".md")
     write_markdown_report(agg, report_path, label)
 
+    def fmt(check: dict) -> str:
+        if check["status"] == "untestable":
+            return f"untestable ({check['untestable_cases']} cases, no trace)"
+        extra = f" ({check['untestable_cases']} untestable)" if check["untestable_cases"] else ""
+        return f"{check['rate']:.1%}{extra}"
+
     s = payload["summary"]
     print("\n--- summary ---")
-    print(f"routing accuracy          {s['routing_accuracy']:.1%}")
-    print(f"action sequence accuracy  {s['action_sequence_accuracy']:.1%}")
+    print(
+        f"messages sent (measured)  {client.messages_sent} vs "
+        f"{len(cases) * cfg['rate_limit']['generations_per_case']} assumed "
+        f"({cfg['rate_limit']['generations_per_case']}/case configured)"
+    )
+    print(f"trace available/unavail   {s['trace_availability']['available']}/{s['trace_availability']['unavailable']}")
+    print(f"routing accuracy          {fmt(s['routing_accuracy'])}")
+    print(f"action sequence accuracy  {fmt(s['action_sequence_accuracy'])}")
     print(f"grounding faithfulness    {s['grounding_faithfulness']:.1%}")
-    print(f"guardrail effectiveness   {s['guardrail_effectiveness']:.1%}")
+    print(f"guardrail effectiveness   {fmt(s['guardrail_effectiveness'])}")
+    print(f"claimed-but-not-performed {fmt(s['claimed_but_not_performed'])}")
     print(f"latency p50 / p95         {s['latency_ms']['p50']} / {s['latency_ms']['p95']} ms")
     print(f"\nwrote {args.out} and {report_path}")
 
