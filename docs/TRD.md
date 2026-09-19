@@ -2,7 +2,7 @@
 
 Owner: Avnish
 Status: draft
-Last updated: TODO
+Last updated: 2026-09-19
 
 > This is the document a senior engineer will actually read. Section 3 is the core of it.
 
@@ -65,11 +65,54 @@ Note (Phase 2): ProcessRefund itself enforces none of the rows above — it is a
 
 ## 4. Grounding and retrieval design
 
-TODO once Phase 4 is done or cut.
+**Cut.** Phase 4 (Data 360 ingestion, DLO-to-DMO mapping, a retriever wired
+into OrderStatus/ReturnsRefunds, citations surfaced in the response) was
+never started. This project went straight from Phase 3 (the deterministic
+gate) to Phase 5 (the evaluation harness) - `ROADMAP.md`'s own Phase 4.5
+decision gate exists for exactly this call ("if this phase is not working
+after two sessions, cut it... drop the grounding metric from the harness"),
+and the call made here was more direct still: it was never attempted, so
+there was nothing to spend two sessions failing at first.
 
-Cover: which documents are ingested, DLO to DMO mapping, chunking, what the retriever returns, and how citations are surfaced so the harness can verify them.
+Org-verified, not inferred: both deployed bot versions have grounding
+switched off at the platform config level, not just "no retriever wired" -
+`force-app/main/default/bots/AgentGrade/v1.botVersion-meta.xml` and
+`v2.botVersion-meta.xml` both carry `<citationsEnabled>false</citationsEnabled>`,
+`<knowledgeActionEnabled>false</knowledgeActionEnabled>`, and
+`<knowledgeFallbackEnabled>false</knowledgeFallbackEnabled>`. There is no
+Data Lake Object, no Data Model Object, no retriever, and no knowledge
+action anywhere in this org for either subagent to call. A citation from
+this agent is not just unlikely, it is not a code path that exists.
 
-If grounding was cut, say so plainly here and describe the fallback. A documented cut is fine; a silent gap is not.
+**Why this matters for section 7 and section 10's numbers:** the harness's
+grounding check (`eval-harness/src/metrics.py`,
+`CaseResult.grounding_pass`) tests citation presence -
+`len(self.citations) > 0`. Run against an agent with citations disabled at
+the platform level, that check can only ever return one answer. The 0.0%
+grounding faithfulness reported in
+`eval-harness/results/baselines/phase5-70case-suite.md` is not a discovered
+behavior of the agent under test - it is the deterministic, structurally
+guaranteed output of a citation-presence check pointed at a subject that
+was never given a citation mechanism to exercise. It says nothing about
+whether this agent *would* ground its answers if Phase 4 existed; it only
+confirms that Phase 4 doesn't. Reporting it as a discovered flaw would be
+the same mistake as reporting `untestable` routing/action-sequence numbers
+as a 0% pass rate (section 10 explains why that isn't done either).
+
+This is a separate finding from the Phase 2 baseline note in section 7,
+which is not about citations - it is about the agent asserting an order
+status or policy fact without having called the action that would verify
+it. That failure mode does not require Phase 4 or a retriever; `GetOrderStatus`
+and `CheckReturnWindow` already exist and are already wired. It remains a
+real, live finding.
+
+Fallback taken: none built. If this project continues past the portfolio
+deadline, the fallback per `ROADMAP.md` 4.5 is Salesforce Knowledge plus an
+Apex retrieval action, with the grounding metric either dropped from the
+harness or re-scoped to "did the agent call an action before stating a
+fact" (which is what section 7's Phase 2 note already measures informally
+and what `claimed_but_not_performed` in `metrics.py` measures formally,
+once the trace endpoint works).
 
 ## 5. Actions
 
@@ -138,6 +181,8 @@ TODO. Cover: action failure, ambiguous intent, guardrail violation, repeated fai
 
 Note on the grounding check: an LLM-as-judge baseline once outperformed my deterministic detector on a previous benchmark project. That result is why the judge here is scoped to the one check that genuinely needs language understanding, and why its disagreements with the deterministic check are reported rather than hidden.
 
+Note (read before quoting the Phase 5 grounding number): this check tests citation presence, and Phase 4 (the only thing that could put a citation in a response) was cut, not built - see section 4. In the 70-case suite this check is scored against an agent with `citationsEnabled = false` at the platform level. It will read 0% regardless of how the agent answers policy questions, so it measures "was Phase 4 built" (no), not "does this agent ground its answers." The genuinely live finding about ungrounded claims is the Phase 2 baseline note directly below, which is about un-invoked actions, not missing citations.
+
 Note (Phase 2 baseline, org-verified): ungrounded factual assertions were observed in the Phase 2 baseline run (`eval-harness/results/phase2-baseline.md`) — the agent stated an order lookup result and a policy answer without invoking the underlying action or data lookup. This is the grounding failure mode the harness's grounding check is meant to catch.
 
 **Pacing** — the Developer Edition allows a limited number of LLM generations per hour. The runner paces requests to stay under it and resumes cleanly. TODO: record the measured generations consumed by one full suite run.
@@ -195,4 +240,8 @@ Every call to this endpoint - three separate real sessions tested, each immediat
 
 Not chased further, per the same reasoning as the Phase 3 finding above: this session has already spent significant time on platform-side provisioning and reachability issues (the External Client App's opaque-vs-JWT token format, the Agent API's own earlier unreachability, and now this), and the trace endpoint being Beta with an explicit Data Cloud dependency makes it plausible this is an org-provisioning gap rather than something fixable from the harness or from Setup alone. **This is behavior observed in one org, at one point in time - not a general claim about Data Cloud, Einstein Audit, or the Agentforce platform.**
 
-Consequence, handled without hiding it: `eval-harness/src/metrics.py` reports routing accuracy, action-sequence accuracy, guardrail effectiveness, and claimed-but-not-performed as `{"status": "untestable", ...}` for every case in the 70-case suite (`eval-harness/results/baselines/phase5-70case-suite.md`) rather than as a misleading pass/fail rate computed against data that was never actually returned. Grounding faithfulness, which does not depend on the trace, was scored normally - and failed: 0 of 5 policy questions returned any citation.
+Consequence, handled without hiding it: `eval-harness/src/metrics.py` reports routing accuracy, action-sequence accuracy, guardrail effectiveness, and claimed-but-not-performed as `{"status": "untestable", ...}` for every case in the 70-case suite (`eval-harness/results/baselines/phase5-70case-suite.md`) rather than as a misleading pass/fail rate computed against data that was never actually returned.
+
+Guardrail effectiveness specifically does not have to stay untestable, even without the trace - `process_refund` and `create_escalation_case` write real, durable records (`ReturnRequest__c`, `Case`) independent of the session trace. `eval-harness/src/soql_guardrail_check.py` queries those records directly (any `ReturnRequest__c` with `Outcome__c = 'Approved'` above the configured cap is a leak, no trace required) and writes its result to `eval-harness/results/baselines/phase5-guardrail-soql-check.md` when run - see that file for the actual leak count once it has been run against this org (TODO: run it and fill in the number here).
+
+Grounding faithfulness, which does not depend on the trace, was scored normally, and read 0 of 5 policy questions returning any citation. Read section 4 before treating that as a finding about the agent: Phase 4 was cut, not attempted, and both deployed bot versions have `citationsEnabled = false` at the platform config level. A citation-presence check run against an agent with citations disabled has exactly one possible result. 0% here confirms Phase 4 doesn't exist; it is not evidence about how this agent would behave if it did.
